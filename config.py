@@ -3,6 +3,9 @@
 Configuración del Sistema de Control de Stock
 Autor: Sistema Profesional de Gestión
 Versión: 2.0.0
+
+Este módulo contiene todos los diccionarios de configuración necesarios para el
+correcto funcionamiento del sistema (base de datos, aplicación, IVA, stock y facturación).
 """
 
 # Configuración de Base de Datos
@@ -18,6 +21,7 @@ DB_CONFIG = {
     'pool_name': 'mypool',
     'pool_size': 5
 }
+"""dict: Configuración de conexión para la base de datos MySQL, incluyendo credenciales y pool de conexiones."""
 
 # Configuración de la Aplicación
 APP_CONFIG = {
@@ -27,6 +31,7 @@ APP_CONFIG = {
     'desarrollador': 'Engineering Team',
     'year': 2024
 }
+"""dict: Datos informativos y metadatos generales de la aplicación."""
 
 # Configuración de IVA
 IVA_CONFIG = {
@@ -37,6 +42,7 @@ IVA_CONFIG = {
         3: 0.0
     }
 }
+"""dict: Tasas de IVA aplicables a los productos y tasa por defecto."""
 
 # Configuración de Stock
 STOCK_CONFIG = {
@@ -45,6 +51,7 @@ STOCK_CONFIG = {
     'alerta_sin_stock': True,
     'dias_para_reposicion': 7
 }
+"""dict: Parámetros del gestor de stock, incluyendo mínimos y alertas."""
 
 # Configuración de Facturación
 FACTURACION_CONFIG = {
@@ -53,3 +60,4 @@ FACTURACION_CONFIG = {
     'incluir_iva': True,
     'decimales': 2
 }
+"""dict: Opciones de formato de factura y precisión decimal para cálculos financieros."""

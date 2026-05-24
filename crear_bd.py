@@ -1,7 +1,28 @@
-# crear_bd.py
+# -*- coding: utf-8 -*-
+"""
+Script de creación e inicialización de la Base de Datos.
+
+Este módulo se encarga de crear la base de datos `control_stock` desde cero,
+definir todas las tablas del sistema (categorías, productos, ventas, pedidos,
+roles, usuarios, etc.), insertar los datos iniciales necesarios para el
+primer inicio del sistema, y definir la vista de alertas de stock.
+"""
+
 import mysql.connector
 
 def crear_base_datos():
+    """
+    Crea la base de datos 'control_stock', define su esquema y carga datos iniciales.
+
+    Establece una conexión temporal con MySQL Localhost (usando el usuario root),
+    elimina la base de datos previa si existe, crea la nueva estructura de tablas,
+    agrega relaciones de claves foráneas, inserta registros iniciales
+    para roles, usuario administrador por defecto, categorías, proveedores
+    y productos de muestra, y finalmente crea la vista `vw_stock_alertas`.
+
+    Raises:
+        mysql.connector.Error: Si ocurre algún error en la conexión o ejecución de sentencias SQL.
+    """
     try:
         # Conectar sin seleccionar base de datos
         conexion = mysql.connector.connect(

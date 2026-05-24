@@ -1,4 +1,8 @@
-# vistas/main_window.py
+# -*- coding: utf-8 -*-
+"""
+Ventana Principal (Dashboard) del Sistema de Control de Stock.
+"""
+
 import tkinter as tk
 from tkinter import ttk, messagebox
 import sys
@@ -14,7 +18,20 @@ from utils.alertas import Alertas
 from utils.helpers import formatear_precio, formatear_fecha
 
 class MainWindow:
+    """
+    Representa la ventana principal y panel de control (Dashboard) de la aplicación.
+
+    Carga métricas clave (KPIs) en tiempo real, tablas de stock crítico e historial de ventas.
+    Gestiona el menú de navegación para abrir el resto de vistas del sistema.
+    """
+
     def __init__(self, usuario):
+        """
+        Inicializa y construye la ventana principal.
+
+        Args:
+            usuario (dict): Diccionario con los datos del usuario autenticado (id, nombre, rol).
+        """
         self.usuario = usuario
         self.window = tk.Tk()
         self.window.title(f"Sistema de Control de Stock - {usuario['nombre_completo']}")
@@ -30,6 +47,9 @@ class MainWindow:
         self.window.mainloop()
     
     def _cargar_datos(self):
+        """
+        Carga datos desde los controladores correspondientes para poblar el Dashboard.
+        """
         try:
             self.productos_alerta = StockController.get_productos_con_alerta()
             self.ventas_hoy = VentaController.get_ventas_hoy()
@@ -43,10 +63,16 @@ class MainWindow:
             self.pedidos_pendientes = []
     
     def _verificar_alertas(self):
+        """
+        Muestra la alerta visual de stock crítico si existen productos bajo stock.
+        """
         if self.productos_alerta:
             Alertas.mostrar_alerta_stock_bajo(self.productos_alerta, self.window)
     
     def _crear_menu(self):
+        """
+        Genera la barra de menú superior con opciones de navegación y cierre.
+        """
         menubar = tk.Menu(self.window)
         
         menu_archivo = tk.Menu(menubar, tearoff=0)
@@ -70,10 +96,16 @@ class MainWindow:
         self.window.config(menu=menubar)
     
     def _crear_widgets(self):
+        """
+        Crea el contenedor base sobre el cual se montarán las diferentes pantallas.
+        """
         self.frame_principal = tk.Frame(self.window, bg='#F0F4F8')
         self.frame_principal.pack(fill=tk.BOTH, expand=True, padx=15, pady=15)
     
     def _mostrar_dashboard(self):
+        """
+        Dibuja los componentes visuales del Dashboard (Tarjetas KPI, tabla de alertas y últimas ventas).
+        """
         for widget in self.frame_principal.winfo_children():
             widget.destroy()
         
@@ -104,6 +136,16 @@ class MainWindow:
         self._crear_tabla_ventas()
     
     def _crear_tarjeta(self, parent, titulo, valor, subtitulo, columna):
+        """
+        Crea y ubica una tarjeta KPI individual en formato cuadrícula.
+
+        Args:
+            parent (tk.Frame): Frame contenedor.
+            titulo (str): Título de la tarjeta.
+            valor (str): Valor principal a destacar.
+            subtitulo (str): Texto secundario informativo.
+            columna (int): Columna de la cuadrícula donde se posicionará.
+        """
         frame = tk.Frame(parent, bg='white', relief=tk.RAISED, bd=1)
         frame.grid(row=0, column=columna, padx=10, pady=5, sticky='nsew')
         
@@ -114,6 +156,9 @@ class MainWindow:
         parent.columnconfigure(columna, weight=1)
     
     def _crear_tabla_alertas(self):
+        """
+        Genera la tabla (Treeview) de productos que requieren reposición inmediata.
+        """
         frame = tk.Frame(self.frame_principal, bg='#F0F4F8')
         frame.pack(fill=tk.BOTH, expand=True, pady=5)
         
@@ -138,6 +183,9 @@ class MainWindow:
         scrollbar.config(command=tabla.yview)
     
     def _crear_tabla_ventas(self):
+        """
+        Genera la tabla (Treeview) con el registro de las últimas ventas del día.
+        """
         frame = tk.Frame(self.frame_principal, bg='#F0F4F8')
         frame.pack(fill=tk.BOTH, expand=True, pady=5)
         
@@ -163,29 +211,50 @@ class MainWindow:
         scrollbar.config(command=tabla.yview)
     
     def _abrir_productos(self):
+        """
+        Instancia y despliega el ABM de Productos.
+        """
         from vistas.productos_window import ProductosWindow
         ProductosWindow(self.window, self.usuario)
     
     def _abrir_ventas(self):
+        """
+        Instancia y despliega la ventana de registro de Ventas.
+        """
         from vistas.ventas_window import VentasWindow
         VentasWindow(self.window, self.usuario)
     
     def _abrir_pedidos(self):
+        """
+        Instancia y despliega el gestor de Pedidos de reposición.
+        """
         from vistas.pedidos_window import PedidosWindow
         PedidosWindow(self.window, self.usuario)
     
     def _reporte_stock(self):
+        """
+        Abre el visor del reporte del Stock Actual.
+        """
         from vistas.reportes_window import ReporteStock
         ReporteStock(self.window)
     
     def _reporte_movimientos(self):
+        """
+        Abre el visor del reporte de Movimientos de inventario.
+        """
         from vistas.reportes_window import ReporteMovimientos
         ReporteMovimientos(self.window)
     
     def _reporte_ventas(self):
+        """
+        Abre el visor del reporte de Ventas registradas.
+        """
         from vistas.reportes_window import ReporteVentas
         ReporteVentas(self.window)
     
     def _salir(self):
+        """
+        Muestra un cuadro de confirmación para cerrar la aplicación de forma segura.
+        """
         if messagebox.askyesno("Salir", "¿Está seguro que desea salir?"):
             self.window.destroy()

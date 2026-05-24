@@ -1,10 +1,30 @@
+# -*- coding: utf-8 -*-
+"""
+Ventana de Ajuste Manual de Inventario (Entradas/Salidas/Mermas).
+"""
+
 import tkinter as tk
 from tkinter import ttk, messagebox
 from controllers import StockController
 from utils import Alertas
 
 class AjusteStockWindow:
+    """
+    Diálogo modal para realizar ajustes manuales sobre el stock de un producto específico.
+
+    Permite registrar incrementos (entradas) o decrementos (salidas/mermas) justificando
+    el motivo del ajuste, actualizando la base de datos de manera inmediata.
+    """
+
     def __init__(self, parent, producto, callback_refresh):
+        """
+        Inicializa e inicia el diálogo modal de ajuste de stock.
+
+        Args:
+            parent (tk.Widget): Ventana padre desde la cual se abre el diálogo.
+            producto (Producto): Objeto `models.Producto` que se va a ajustar.
+            callback_refresh (callable): Función a invocar tras guardar el ajuste para refrescar la lista de productos.
+        """
         self.parent = parent
         self.producto = producto
         self.callback_refresh = callback_refresh
@@ -21,6 +41,9 @@ class AjusteStockWindow:
         self.window.focus_force()
     
     def crear_widgets(self):
+        """
+        Dibuja los controles del formulario de ajuste manual de stock.
+        """
         # Título
         tk.Label(self.window, text=" AJUSTE DE STOCK", 
                 font=("Arial", 14, "bold"), bg='#F0F0F0').pack(pady=10)
@@ -72,6 +95,9 @@ class AjusteStockWindow:
                  bg='#6C757D', fg='white', padx=20).pack(side=tk.LEFT, padx=10)
     
     def guardar_ajuste(self):
+        """
+        Valida los datos ingresados y procesa la transacción de ajuste de stock en la base de datos.
+        """
         try:
             cantidad = int(self.entry_cantidad.get())
             if cantidad <= 0:

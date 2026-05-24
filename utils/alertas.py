@@ -8,12 +8,17 @@ from tkinter import messagebox
 from datetime import datetime
 
 class Alertas:
-    """Clase para manejar todas las alertas del sistema"""
+    """
+    Gestor centralizado de alertas y notificaciones del sistema.
+
+    Proporciona metodos estaticos para generar ventanas emergentes (pop-ups) y cuadros de dialogo estandarizados utilizando la libreria Tkinter.
+    Centraliza la comunicacion visual con el usuario para manterner consistencia en toda la interfaz grafica de la aplicacion.
+    """
     
     @staticmethod
     def mostrar_alerta_stock_bajo(productos_bajo_stock, parent=None):
         """
-        Muestra alerta visual cuando hay productos con stock bajo
+        Genera una ventana emergente con el detale de los insumos que se encuentran en estado critico o sin stock.
         
         Args:
             productos_bajo_stock: Lista de productos con stock crítico
@@ -119,7 +124,12 @@ class Alertas:
     
     @staticmethod
     def _sugerir_pedido(parent):
-        """Sugiere generar un pedido automático"""
+        """
+        Despliega un cuadro de dialogo para confirmar la generacion de un pedido automatico.
+
+        Args:
+            parent (tk.Toplevel): La ventana de alerta actual, que será destruida tras confirmar o cancelar la acción.
+        """
         respuesta = messagebox.askyesno(
             "Generar Pedido",
             "¿Desea generar un pedido automático con los productos faltantes?\n\n"
@@ -133,25 +143,58 @@ class Alertas:
     
     @staticmethod
     def mostrar_mensaje_exito(mensaje, titulo="Éxito"):
-        """Muestra mensaje de éxito"""
+        """
+        Depliega un cuadro de dialogo estandar inficando que una operacion fue exitosa.
+
+        Args:
+            mensaje (str): Mensaje a mostrar
+            titulo (str, optional): Titulo de la ventana. Defaults to "Éxito".
+        """
         messagebox.showinfo(titulo, mensaje)
     
     @staticmethod
     def mostrar_mensaje_error(mensaje, titulo="Error"):
-        """Muestra mensaje de error"""
+        """
+        Depliega un cuadro de dialogo estandar inficando que ocurrio un error.
+
+        Args:
+            mensaje (str): Mensaje a mostrar
+            titulo (str, optional): Titulo de la ventana. Defaults to "Error".
+        """
         messagebox.showerror(titulo, mensaje)
     
     @staticmethod
     def mostrar_mensaje_advertencia(mensaje, titulo="Advertencia"):
-        """Muestra mensaje de advertencia"""
+        """
+        Depliega un cuadro de dialogo estandar inficando que una operacion fue advertencia.
+
+        Args:
+            mensaje (str): Mensaje a mostrar
+            titulo (str, optional): Titulo de la ventana. Defaults to "Advertencia".
+        """
         messagebox.showwarning(titulo, mensaje)
     
     @staticmethod
     def mostrar_mensaje_informacion(mensaje, titulo="Información"):
-        """Muestra mensaje informativo"""
+        """
+        Depliega un cuadro de dialogo estandar inficando que una operacion fue informativa.
+
+        Args:
+            mensaje (str): Mensaje a mostrar
+            titulo (str, optional): Titulo de la ventana. Defaults to "Información".
+        """
         messagebox.showinfo(titulo, mensaje)
     
     @staticmethod
     def preguntar_si(mensaje, titulo="Confirmar"):
-        """Pregunta al usuario si/no"""
+        """
+        Depliega un cuadro de dialogo estandar para preguntar al usuario si/no.
+
+        Args:
+            mensaje (str): Mensaje a mostrar
+            titulo (str, optional): Titulo de la ventana. Defaults to "Confirmar".
+        
+        Returns:
+            bool: True si el usuario responde si, False si responde no.
+        """
         return messagebox.askyesno(titulo, mensaje)

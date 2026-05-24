@@ -1,3 +1,8 @@
+# -*- coding: utf-8 -*-
+"""
+Vistas de Reportes (Stock Actual, Movimientos y Ventas).
+"""
+
 import tkinter as tk
 from tkinter import ttk, messagebox
 from datetime import datetime, timedelta
@@ -5,7 +10,18 @@ from controllers import ReporteController, StockController
 from utils import formatear_precio, formatear_fecha
 
 class ReporteStock:
+    """
+    Ventana para la visualización del reporte consolidado de stock actual.
+    """
+    
     def __init__(self, parent, id_producto=None):
+        """
+        Inicializa el reporte de stock.
+
+        Args:
+            parent (tk.Widget): Ventana padre.
+            id_producto (int, opcional): ID del producto para filtrar (no utilizado actualmente).
+        """
         self.parent = parent
         self.id_producto = id_producto
         
@@ -21,6 +37,9 @@ class ReporteStock:
         self.window.grab_set()
     
     def crear_widgets(self):
+        """
+        Dibuja la estructura de la ventana del reporte de stock.
+        """
         tk.Label(self.window, text=" REPORTE DE STOCK ACTUAL", 
                 font=("Arial", 16, "bold"), bg='#F0F0F0').pack(pady=10)
         
@@ -46,6 +65,9 @@ class ReporteStock:
                  bg='#6C757D', fg='white', padx=20).pack(pady=10)
     
     def cargar_datos(self):
+        """
+        Consulta y llena la tabla con el catálogo y nivel de stock de cada producto.
+        """
         productos = StockController.get_all_productos()
         
         for p in productos:
@@ -61,7 +83,18 @@ class ReporteStock:
 
 
 class ReporteMovimientos:
+    """
+    Ventana para la visualización del historial detallado de movimientos de inventario.
+    """
+    
     def __init__(self, parent, id_producto=None):
+        """
+        Inicializa el reporte de movimientos.
+
+        Args:
+            parent (tk.Widget): Ventana padre.
+            id_producto (int, opcional): ID de producto si se desea filtrar un artículo específico.
+        """
         self.parent = parent
         self.id_producto = id_producto
         
@@ -77,6 +110,9 @@ class ReporteMovimientos:
         self.window.grab_set()
     
     def crear_widgets(self):
+        """
+        Dibuja los controles del listado de transacciones físicas de inventario.
+        """
         tk.Label(self.window, text=" MOVIMIENTOS DE STOCK", 
                 font=("Arial", 16, "bold"), bg='#F0F0F0').pack(pady=10)
         
@@ -106,6 +142,9 @@ class ReporteMovimientos:
                  bg='#6C757D', fg='white', padx=20).pack(pady=10)
     
     def cargar_datos(self):
+        """
+        Carga la bitácora de movimientos desde el controlador y la inserta en la tabla.
+        """
         movimientos = ReporteController.get_movimientos_stock(self.id_producto, dias=90)
         
         for m in movimientos:
@@ -126,7 +165,17 @@ class ReporteMovimientos:
 
 
 class ReporteVentas:
+    """
+    Ventana para la visualización e impresión de reportes de facturación y ventas.
+    """
+    
     def __init__(self, parent):
+        """
+        Inicializa el reporte de ventas.
+
+        Args:
+            parent (tk.Widget): Ventana padre.
+        """
         self.parent = parent
         
         self.window = tk.Toplevel(parent)
@@ -141,6 +190,9 @@ class ReporteVentas:
         self.window.grab_set()
     
     def crear_widgets(self):
+        """
+        Dibuja los filtros de búsqueda temporal, la tabla de ventas y el ranking de artículos más vendidos.
+        """
         tk.Label(self.window, text=" REPORTE DE VENTAS", 
                 font=("Arial", 16, "bold"), bg='#F0F0F0').pack(pady=10)
         
@@ -211,6 +263,9 @@ class ReporteVentas:
         self.cambiar_periodo()
     
     def cambiar_periodo(self, event=None):
+        """
+        Actualiza los campos de fecha de inicio y fin según el período seleccionado.
+        """
         periodo = self.combo_periodo.get()
         
         if periodo == 'Hoy':
@@ -247,6 +302,9 @@ class ReporteVentas:
             self.entry_hasta.delete(0, tk.END)
     
     def cargar_datos(self):
+        """
+        Carga los productos más vendidos desde la base de datos y refresca las tablas.
+        """
         # Cargar productos más vendidos
         productos_top = ReporteController.get_productos_mas_vendidos(10)
         
@@ -264,5 +322,4 @@ class ReporteVentas:
         Alertas.mostrar_mensaje_informacion("Reporte", "Reporte cargado correctamente")
 
 
-# Importar Alertas al final para evitar circular import
 from utils.alertas import Alertas

@@ -1,3 +1,8 @@
+# -*- coding: utf-8 -*-
+"""
+Vistas de Gestión de Productos (Catálogo y Formulario ABM).
+"""
+
 import tkinter as tk
 from tkinter import ttk, messagebox
 from controllers import StockController
@@ -5,7 +10,21 @@ from models import Producto
 from utils import Alertas, buscar_productos
 
 class ProductosWindow:
+    """
+    Ventana para visualizar, buscar y gestionar el catálogo general de productos.
+
+    Proporciona una tabla (Treeview) interactiva, filtrado dinámico por código o nombre,
+    y botones para abrir el formulario de creación/edición, ajustes de stock e historial de movimientos.
+    """
+    
     def __init__(self, parent, usuario):
+        """
+        Inicializa e inicia la ventana de gestión de productos.
+
+        Args:
+            parent (tk.Widget): Ventana padre.
+            usuario (dict): Diccionario con los datos del usuario activo.
+        """
         self.parent = parent
         self.usuario = usuario
         self.productos = []
@@ -23,11 +42,17 @@ class ProductosWindow:
         self.window.focus_force()
     
     def cargar_datos(self):
+        """
+        Carga o refresca los catálogos de productos, categorías y proveedores desde los controladores.
+        """
         self.productos = StockController.get_all_productos()
         self.categorias = StockController.get_categorias()
         self.proveedores = StockController.get_proveedores()
     
     def crear_widgets(self):
+        """
+        Dibuja la barra de búsqueda, la tabla principal de productos y la botonera de acciones.
+        """
         # Título
         tk.Label(self.window, text=" GESTIÓN DE PRODUCTOS", 
                 font=("Arial", 16, "bold"), bg='#F0F0F0').pack(pady=10)
@@ -88,6 +113,10 @@ class ProductosWindow:
                  bg='#DC3545', fg='white', padx=20).pack(side=tk.RIGHT, padx=5)
     
     def actualizar_tabla(self):
+        """
+        Limpia la tabla de productos y la repobla con la lista actual en memoria.
+        Aplica colores de fondo según el nivel de stock (Normal, Bajo, Sin Stock).
+        """
         for item in self.tabla.get_children():
             self.tabla.delete(item)
         
@@ -104,6 +133,9 @@ class ProductosWindow:
         self.tabla.tag_configure('SIN STOCK', background='#F8D7DA')
     
     def buscar_productos(self, event=None):
+        """
+        Filtra la lista de productos interactiva basándose en el texto ingresado en el buscador.
+        """
         texto = self.entry_busqueda.get()
         if texto:
             productos = StockController.get_all_productos()
@@ -115,9 +147,15 @@ class ProductosWindow:
         self.actualizar_tabla()
     
     def nuevo_producto(self):
+        """
+        Abre el formulario para el registro de un producto nuevo.
+        """
         FormularioProducto(self.window, self.usuario, None, self.cargar_datos)
     
     def editar_producto(self):
+        """
+        Abre el formulario para editar el producto actualmente seleccionado en la tabla.
+        """
         seleccion = self.tabla.selection()
         if not seleccion:
             Alertas.mostrar_mensaje_advertencia("Seleccione un producto")
@@ -131,6 +169,9 @@ class ProductosWindow:
             FormularioProducto(self.window, self.usuario, producto, self.cargar_datos)
     
     def ver_movimientos(self):
+        """
+        Abre el historial de movimientos de inventario del producto seleccionado.
+        """
         seleccion = self.tabla.selection()
         if not seleccion:
             Alertas.mostrar_mensaje_advertencia("Seleccione un producto")
@@ -145,6 +186,9 @@ class ProductosWindow:
             ReporteMovimientos(self.window, producto.id_producto)
     
     def actualizar_stock(self):
+        """
+        Abre la ventana modal para ajustar manualmente el stock del producto seleccionado.
+        """
         seleccion = self.tabla.selection()
         if not seleccion:
             Alertas.mostrar_mensaje_advertencia("Seleccione un producto")
@@ -160,9 +204,23 @@ class ProductosWindow:
 
 
 class FormularioProducto:
-    """Formulario para crear o editar un producto"""
+    """
+    Formulario modal para el registro (Alta) o edición (Modificación) de productos en el catálogo.
+
+    Valida obligatoriedad de campos y coherencia de formatos antes de enviar los datos
+    al controlador para persistir los cambios.
+    """
     
     def __init__(self, parent, usuario, producto=None, callback_refresh=None):
+        """
+        Inicializa y configura el diálogo del formulario de productos.
+
+        Args:
+            parent (tk.Widget): Ventana padre.
+            usuario (dict): Datos del usuario que realiza la operación.
+            producto (Producto, opcional): Objeto `models.Producto` a editar. Si es None, actúa en modo creación.
+            callback_refresh (callable, opcional): Callback para notificar a la ventana principal de la actualización de los datos.
+        """
         self.parent = parent
         self.usuario = usuario
         self.producto = producto
@@ -185,6 +243,9 @@ class FormularioProducto:
         self.window.focus_force()
     
     def cargar_datos(self):
+        """
+        Obtiene categorías y proveedores para poblar los campos de selección del formulario.
+        """
         from controllers import StockController
         self.categorias = StockController.get_categorias()
         self.proveedores = StockController.get_proveedores()
@@ -194,6 +255,9 @@ class FormularioProducto:
         self.proveedores_dict = {p.id_proveedor: p.nombre for p in self.proveedores}
     
     def crear_widgets(self):
+        """
+        Dibuja todos los componentes y controles del formulario.
+        """
         # Título
         titulo = " EDITAR PRODUCTO" if self.producto else " NUEVO PRODUCTO"
         tk.Label(self.window, text=titulo, 
@@ -285,7 +349,9 @@ class FormularioProducto:
         frame.columnconfigure(1, weight=1)
     
     def guardar(self):
-        """Guardar el producto (crear o actualizar)"""
+        """
+        Valida el formulario y persiste el producto (creándolo o actualizándolo en la BD).
+        """
         from controllers import StockController
         
         # Validar campos requeridos

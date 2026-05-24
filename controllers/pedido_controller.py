@@ -1,10 +1,35 @@
+# -*- coding: utf-8 -*-
+"""
+Controlador de Pedidos a Proveedores.
+"""
+
 from utils.database import get_connection
 from models import Pedido, DetallePedido
 from datetime import datetime
 
 class PedidoController:
+    """
+    Controlador para gestionar la lógica de negocio de pedidos a proveedores.
+
+    Proporciona métodos estáticos para generar pedidos de reposición automáticos
+    y para consultar pedidos en estado pendiente o en proceso.
+    """
+
     @staticmethod
     def generar_pedido_automatico():
+        """
+        Genera pedidos automáticos de reposición de stock agrupados por proveedor.
+
+        Analiza la vista `vw_stock_alertas` en busca de productos con stock bajo
+        o nulo que tengan un proveedor asignado. Crea un pedido pendiente por cada
+        proveedor con los insumos críticos.
+
+        Returns:
+            list: Lista de IDs de los pedidos generados.
+        
+        Raises:
+            Exception: Si ocurre un error en la base de datos durante la transacción.
+        """
         conexion = get_connection()
         cursor = conexion.cursor()
         
@@ -52,6 +77,13 @@ class PedidoController:
     
     @staticmethod
     def get_pedidos_pendientes():
+        """
+        Obtiene todos los pedidos que se encuentran en estado 'Pendiente' o 'Enviado'.
+
+        Returns:
+            list: Lista de diccionarios que representan los registros de pedidos pendientes
+                  con el nombre de sus proveedores asociados, ordenados de forma descendente por fecha.
+        """
         conexion = get_connection()
         cursor = conexion.cursor(dictionary=True)
         

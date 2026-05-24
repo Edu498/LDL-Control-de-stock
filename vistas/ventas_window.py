@@ -1,3 +1,8 @@
+# -*- coding: utf-8 -*-
+"""
+Ventana de Facturación y Registro de Ventas (Punto de Venta - POS).
+"""
+
 import tkinter as tk
 from tkinter import ttk, messagebox
 from datetime import datetime
@@ -5,7 +10,22 @@ from controllers import StockController, VentaController
 from utils import Alertas, formatear_precio, generar_numero_factura
 
 class VentasWindow:
+    """
+    Punto de Venta (POS) para facturar productos en tiempo real.
+
+    Permite buscar productos activos con stock disponible, agregarlos a un carrito
+    de compras con cantidades dinámicas, calcular subtotales, IVA y total de forma automática,
+    y persistir la venta emitiendo un número de factura único.
+    """
+    
     def __init__(self, parent, usuario):
+        """
+        Inicializa e inicia la pantalla de facturación de ventas.
+
+        Args:
+            parent (tk.Widget): Ventana padre.
+            usuario (dict): Datos del usuario activo que registra la venta.
+        """
         self.parent = parent
         self.usuario = usuario
         self.carrito = []
@@ -24,10 +44,16 @@ class VentasWindow:
         self.window.focus_force()
     
     def cargar_datos(self):
+        """
+        Consulta el listado completo de productos para permitir la venta rápida.
+        """
         self.productos = StockController.get_all_productos()
         self.productos_dict = {p.codigo: p for p in self.productos}
     
     def crear_widgets(self):
+        """
+        Dibuja los paneles del POS (catálogo de búsqueda a la izquierda y carrito/facturación a la derecha).
+        """
         # Título
         tk.Label(self.window, text=" REGISTRO DE VENTAS", 
                 font=("Arial", 16, "bold"), bg='#F0F0F0').pack(pady=10)
@@ -167,6 +193,9 @@ class VentasWindow:
         self.actualizar_tabla_productos()
     
     def actualizar_tabla_productos(self):
+        """
+        Llena el catálogo izquierdo sólo con aquellos productos que cuenten con stock mayor a cero.
+        """
         for item in self.tabla_productos.get_children():
             self.tabla_productos.delete(item)
         
@@ -177,6 +206,9 @@ class VentasWindow:
                 ))
     
     def buscar_productos(self, event=None):
+        """
+        Filtra dinámicamente los productos disponibles para la venta según el criterio de búsqueda.
+        """
         texto = self.entry_busqueda.get().lower()
         
         for item in self.tabla_productos.get_children():
@@ -189,6 +221,10 @@ class VentasWindow:
                 ))
     
     def agregar_al_carrito(self):
+        """
+        Agrega el producto seleccionado con la cantidad indicada al carrito de compras virtual.
+        Realiza validaciones de disponibilidad de stock.
+        """
         seleccion = self.tabla_productos.selection()
         if not seleccion:
             Alertas.mostrar_mensaje_advertencia("Seleccione un producto")
@@ -239,6 +275,9 @@ class VentasWindow:
         self.spin_cantidad.insert(0, "1")
     
     def actualizar_carrito(self):
+        """
+        Refresca la tabla del carrito y vuelve a calcular subtotales, IVA e importes totales.
+        """
         for item in self.tabla_carrito.get_children():
             self.tabla_carrito.delete(item)
         
@@ -258,6 +297,9 @@ class VentasWindow:
         self.lbl_total.config(text=f"${total:,.2f}")
     
     def eliminar_del_carrito(self):
+        """
+        Quita la fila seleccionada del carrito virtual y actualiza totales.
+        """
         seleccion = self.tabla_carrito.selection()
         if not seleccion:
             Alertas.mostrar_mensaje_advertencia("Seleccione un item del carrito")
@@ -274,11 +316,18 @@ class VentasWindow:
         self.actualizar_carrito()
     
     def limpiar_carrito(self):
+        """
+        Vacía por completo el carrito de compras tras confirmar la acción.
+        """
         if self.carrito and Alertas.preguntar_si("¿Limpiar todo el carrito?"):
             self.carrito = []
             self.actualizar_carrito()
     
     def registrar_venta(self):
+        """
+        Construye el objeto de venta con sus detalles, invoca al controlador
+        para registrar la transacción, disminuye el stock físico e imprime confirmación.
+        """
         if not self.carrito:
             Alertas.mostrar_mensaje_advertencia("El carrito está vacío")
             return

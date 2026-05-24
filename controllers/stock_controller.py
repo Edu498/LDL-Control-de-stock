@@ -1,10 +1,29 @@
+# -*- coding: utf-8 -*-
+"""
+Controlador para la Gestión del Inventario (Stock, Categorías y Proveedores).
+"""
+
 import mysql.connector
 from models import Producto, Categoria, Proveedor
 from utils.database import get_connection
 
 class StockController:
+    """
+    Controlador para gestionar la lógica de inventario, productos, categorías y proveedores.
+
+    Permite crear y actualizar productos, registrar transacciones o movimientos de inventario,
+    y consultar alertas de stock bajo.
+    """
+
     @staticmethod
     def get_all_productos():
+        """
+        Obtiene la lista completa de productos activos del catálogo.
+
+        Returns:
+            list: Lista de objetos `models.Producto` con sus datos asociados
+                  (categoría y proveedor).
+        """
         conexion = get_connection()
         cursor = conexion.cursor(dictionary=True)
         
@@ -43,6 +62,13 @@ class StockController:
     
     @staticmethod
     def get_productos_con_alerta():
+        """
+        Consulta todos los productos activos que tengan un estado de stock crítico o bajo.
+
+        Returns:
+            list: Lista de diccionarios con información detallada de productos que requieren reposición
+                  (ordenados primero por 'SIN STOCK' y luego por 'STOCK BAJO').
+        """
         conexion = get_connection()
         cursor = conexion.cursor(dictionary=True)
         
@@ -64,6 +90,15 @@ class StockController:
     
     @staticmethod
     def get_producto_by_id(id_producto):
+        """
+        Busca un producto por su ID único.
+
+        Args:
+            id_producto (int): ID del producto.
+
+        Returns:
+            Producto o None: Objeto `models.Producto` si es encontrado, de lo contrario None.
+        """
         conexion = get_connection()
         cursor = conexion.cursor(dictionary=True)
         
@@ -94,6 +129,15 @@ class StockController:
     
     @staticmethod
     def crear_producto(producto):
+        """
+        Inserta un nuevo producto en la base de datos.
+
+        Args:
+            producto (Producto): Objeto `models.Producto` con los datos a insertar.
+
+        Returns:
+            Producto: El mismo objeto `models.Producto` modificado con el `id_producto` asignado por la base de datos.
+        """
         conexion = get_connection()
         cursor = conexion.cursor()
         
@@ -118,6 +162,19 @@ class StockController:
     
     @staticmethod
     def actualizar_stock(id_producto, cantidad, tipo_movimiento, usuario, referencia=None):
+        """
+        Modifica la cantidad física de stock de un producto y registra el movimiento en la bitácora.
+
+        Args:
+            id_producto (int): ID del producto a modificar.
+            cantidad (int): Cantidad de unidades a sumar o restar (con su signo correspondiente).
+            tipo_movimiento (int): ID del tipo de movimiento (Venta, Compra, Ajuste, etc.).
+            usuario (str): Nombre de usuario que realiza el ajuste o transacción.
+            referencia (dict, opcional): Diccionario con claves 'tipo' e 'id' del documento que respalda la operación.
+
+        Returns:
+            int: El nuevo nivel de stock calculado del producto.
+        """
         conexion = get_connection()
         cursor = conexion.cursor()
         
@@ -149,6 +206,12 @@ class StockController:
     
     @staticmethod
     def get_categorias():
+        """
+        Obtiene la lista completa de categorías activas registradas en el sistema.
+
+        Returns:
+            list: Lista de objetos `models.Categoria`.
+        """
         conexion = get_connection()
         cursor = conexion.cursor(dictionary=True)
         cursor.execute("SELECT * FROM categorias WHERE activo = TRUE ORDER BY nombre")
@@ -159,6 +222,12 @@ class StockController:
     
     @staticmethod
     def get_proveedores():
+        """
+        Obtiene la lista completa de proveedores activos registrados en el sistema.
+
+        Returns:
+            list: Lista de objetos `models.Proveedor`.
+        """
         conexion = get_connection()
         cursor = conexion.cursor(dictionary=True)
         cursor.execute("SELECT * FROM proveedores WHERE activo = TRUE ORDER BY nombre")

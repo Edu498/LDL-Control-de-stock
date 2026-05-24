@@ -1,11 +1,41 @@
+# -*- coding: utf-8 -*-
+"""
+Controlador de Ventas y Facturación del Sistema.
+"""
+
 import mysql.connector
 from models import Venta, DetalleVenta
 from utils.database import get_connection
 from datetime import datetime
 
 class VentaController:
+    """
+    Controlador encargado de gestionar las operaciones de ventas y transacciones de caja.
+
+    Proporciona métodos estáticos para registrar nuevas ventas (afectando stock y bitácora),
+    y para consultar las ventas y totales del día corriente.
+    """
+
     @staticmethod
     def registrar_venta(venta):
+        """
+        Registra una venta de productos en la base de datos dentro de una transacción.
+
+        Este proceso realiza múltiples operaciones en la base de datos:
+        1. Inserta la venta en la tabla `ventas` con estado Completada (id_estado = 2).
+        2. Inserta cada detalle del producto vendido en `detalles_venta`.
+        3. Descuenta del inventario actual en `productos` la cantidad correspondiente.
+        4. Registra un movimiento de tipo Venta en `movimientos_stock` por cada producto.
+
+        Args:
+            venta (Venta): Objeto de tipo `models.Venta` que contiene el cliente, usuario y detalles de venta.
+
+        Returns:
+            Venta: El objeto `Venta` con su `id_venta` asignado tras la inserción exitosa.
+
+        Raises:
+            Exception: Si falla cualquier inserción SQL o la actualización de stock (provoca Rollback).
+        """
         conexion = get_connection()
         cursor = conexion.cursor()
         
@@ -58,6 +88,13 @@ class VentaController:
     
     @staticmethod
     def get_ventas_hoy():
+        """
+        Obtiene las ventas registradas durante el día actual.
+
+        Returns:
+            list: Lista de diccionarios que representan los registros de ventas de hoy,
+                  incluyendo el conteo de tipos de producto en cada venta, ordenados por fecha/hora descendente.
+        """
         conexion = get_connection()
         cursor = conexion.cursor(dictionary=True)
         
@@ -78,6 +115,12 @@ class VentaController:
     
     @staticmethod
     def get_resumen_dia():
+        """
+        Calcula un resumen estadístico y financiero de las ventas completadas del día.
+
+        Returns:
+            dict: Diccionario con el total de ventas (conteo), monto total recaudado y promedio de venta (ticket promedio).
+        """
         conexion = get_connection()
         cursor = conexion.cursor(dictionary=True)
         
