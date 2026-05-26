@@ -1,0 +1,18 @@
+{
+  "producto": {
+    "nombre": "Shampoo 400ml",
+    "codigo": "PF001",
+    "stock_actual": 22,
+    "stock_minimo": 5
+  },
+  "historial": [
+    {
+      "fecha": "2026-05-19 13:18:18",
+      "operacion": "AGREGAR",
+      "cantidad": 10,
+      "stock_anterior": 12,
+      "stock_nuevo": 22,
+      "motivo": "merma"
+    }
+  ]
+}
