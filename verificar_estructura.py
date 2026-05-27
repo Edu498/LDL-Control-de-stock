@@ -18,7 +18,7 @@ def verificar():
     print(f"\n📁 Carpeta actual: {carpeta_actual}")
 
     # Verificar carpetas necesarias
-    carpetas = ['models', 'controllers', 'views', 'utils']
+    carpetas = ['models', 'controllers', 'vistas', 'utils']
     for carpeta in carpetas:
         ruta = os.path.join(carpeta_actual, carpeta)
         if os.path.exists(ruta):
