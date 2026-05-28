@@ -1,12 +1,4 @@
-# -*- coding: utf-8 -*-
-"""
-Paquete de Vistas de la aplicación (Interfaz de Usuario).
-
-Agrupa todas las ventanas y diálogos de Tkinter que componen la interfaz
-gráfica del sistema: login, ventana principal, gestión de productos, ventas,
-pedidos, reportes y ajustes de inventario.
-"""
-
+# vistas/__init__.py
 from .login_window import LoginWindow
 from .main_window import MainWindow
 from .productos_window import ProductosWindow, FormularioProducto

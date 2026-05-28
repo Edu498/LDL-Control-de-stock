@@ -1,29 +1,12 @@
-# -*- coding: utf-8 -*-
-"""
-Vistas de Gestión de Pedidos y Órdenes de Reposición a Proveedores.
-"""
-
+# vistas/pedidos_window.py
 import tkinter as tk
 from tkinter import ttk, messagebox
 from controllers import StockController, PedidoController
 from utils import Alertas, formatear_precio, formatear_fecha
+from utils.eventos import Eventos, EVENTO_PEDIDO_CREADO
 
 class PedidosWindow:
-    """
-    Ventana para la gestión de compras y abastecimiento.
-
-    Muestra una pestaña con los insumos críticos o con stock bajo, y otra pestaña
-    con el listado de pedidos pendientes de recepción. Permite disparar compras automáticas.
-    """
-    
     def __init__(self, parent, usuario):
-        """
-        Inicializa la ventana de gestión de pedidos.
-
-        Args:
-            parent (tk.Widget): Ventana padre.
-            usuario (dict): Datos del usuario activo.
-        """
         self.parent = parent
         self.usuario = usuario
         
@@ -40,31 +23,25 @@ class PedidosWindow:
         self.window.focus_force()
     
     def cargar_datos(self):
-        """
-        Carga la lista de stock bajo, pedidos pendientes y proveedores.
-        """
         self.productos_bajo_stock = StockController.get_productos_con_alerta()
         self.pedidos = PedidoController.get_pedidos_pendientes()
         self.proveedores = StockController.get_proveedores()
     
     def crear_widgets(self):
-        """
-        Dibuja los controles y pestañas de la interfaz de pedidos.
-        """
         # Título
-        tk.Label(self.window, text=" GESTIÓN DE PEDIDOS", 
+        tk.Label(self.window, text="📦 GESTIÓN DE PEDIDOS", 
                 font=("Arial", 16, "bold"), bg='#F0F0F0').pack(pady=10)
         
         # Frame de botones superior
         frame_botones = tk.Frame(self.window, bg='#F0F0F0')
         frame_botones.pack(fill=tk.X, padx=10, pady=5)
         
-        tk.Button(frame_botones, text=" Generar Pedido Automático", 
+        tk.Button(frame_botones, text="⚡ Generar Pedido Automático", 
                  command=self.generar_pedido_automatico,
                  bg='#28A745', fg='white', font=("Arial", 10, "bold"),
                  padx=20).pack(side=tk.LEFT, padx=5)
         
-        tk.Button(frame_botones, text=" Nuevo Pedido Manual", 
+        tk.Button(frame_botones, text="➕ Nuevo Pedido Manual", 
                  command=self.nuevo_pedido,
                  bg='#007BFF', fg='white', font=("Arial", 10, "bold"),
                  padx=20).pack(side=tk.LEFT, padx=5)
@@ -75,23 +52,20 @@ class PedidosWindow:
         
         # Pestaña: Productos con stock bajo
         self.frame_stock_bajo = tk.Frame(self.notebook, bg='#F0F0F0')
-        self.notebook.add(self.frame_stock_bajo, text=" Stock Bajo")
+        self.notebook.add(self.frame_stock_bajo, text="⚠️ Stock Bajo")
         self.crear_tabla_stock_bajo()
         
         # Pestaña: Pedidos pendientes
         self.frame_pedidos = tk.Frame(self.notebook, bg='#F0F0F0')
-        self.notebook.add(self.frame_pedidos, text=" Pedidos Pendientes")
+        self.notebook.add(self.frame_pedidos, text="📋 Pedidos Pendientes")
         self.crear_tabla_pedidos()
         
         # Pestaña: Historial de pedidos
         self.frame_historial = tk.Frame(self.notebook, bg='#F0F0F0')
-        self.notebook.add(self.frame_historial, text=" Historial")
+        self.notebook.add(self.frame_historial, text="📜 Historial")
         self.crear_tabla_historial()
     
     def crear_tabla_stock_bajo(self):
-        """
-        Crea la estructura de la tabla de alertas de stock en la pestaña 'Stock Bajo'.
-        """
         # Frame para la tabla
         frame_tabla = tk.Frame(self.frame_stock_bajo)
         frame_tabla.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
@@ -115,32 +89,30 @@ class PedidosWindow:
         frame_botones = tk.Frame(self.frame_stock_bajo, bg='#F0F0F0')
         frame_botones.pack(fill=tk.X, padx=10, pady=5)
         
-        tk.Button(frame_botones, text=" Generar Pedido para Seleccionados", 
+        tk.Button(frame_botones, text="📦 Generar Pedido para Seleccionados", 
                  command=self.generar_pedido_seleccionados,
                  bg='#28A745', fg='white', padx=20).pack()
         
         self.actualizar_tabla_stock_bajo()
     
     def actualizar_tabla_stock_bajo(self):
-        """
-        Llena la tabla de la pestaña 'Stock Bajo' con los productos críticos cargados en memoria.
-        """
         for item in self.tabla_stock_bajo.get_children():
             self.tabla_stock_bajo.delete(item)
         
         for p in self.productos_bajo_stock:
-            faltante = max(0, p['stock_minimo'] - p['stock_actual'])
+            faltante = max(0, p.get('stock_minimo', 0) - p.get('stock_actual', 0))
             self.tabla_stock_bajo.insert('', tk.END, values=(
-                p['codigo'], p['nombre'], p['stock_actual'],
-                p['stock_minimo'], faltante, p.get('proveedor', 'Sin proveedor')
+                p.get('codigo', '-'), 
+                p.get('nombre', '-'), 
+                p.get('stock_actual', 0),
+                p.get('stock_minimo', 0), 
+                faltante, 
+                p.get('proveedor', 'Sin proveedor')
             ), tags=('seleccionable',))
         
         self.tabla_stock_bajo.tag_configure('seleccionable', background='#FFF3CD')
     
     def crear_tabla_pedidos(self):
-        """
-        Crea la estructura de la tabla en la pestaña 'Pedidos Pendientes'.
-        """
         frame_tabla = tk.Frame(self.frame_pedidos)
         frame_tabla.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         
@@ -162,26 +134,20 @@ class PedidosWindow:
         self.actualizar_tabla_pedidos()
     
     def actualizar_tabla_pedidos(self):
-        """
-        Refresca el listado de órdenes de reposición activas o pendientes de envío.
-        """
         for item in self.tabla_pedidos.get_children():
             self.tabla_pedidos.delete(item)
         
         for p in self.pedidos:
             self.tabla_pedidos.insert('', tk.END, values=(
-                p['numero_pedido'],
-                p['proveedor_nombre'],
-                formatear_fecha(p['fecha_pedido']),
+                p.get('numero_pedido', 'N/A'),
+                p.get('proveedor_nombre', '-'),
+                formatear_fecha(p.get('fecha_pedido', '')),
                 f"${p.get('total', 0):,.2f}",
-                'Pendiente' if p['id_estado'] == 1 else 'Enviado',
-                ' Recibir'
+                'Pendiente' if p.get('id_estado') == 1 else 'Enviado',
+                '📦 Recibir'
             ))
     
     def crear_tabla_historial(self):
-        """
-        Crea la estructura de la tabla de la pestaña 'Historial'.
-        """
         frame_tabla = tk.Frame(self.frame_historial)
         frame_tabla.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         
@@ -200,54 +166,41 @@ class PedidosWindow:
         self.tabla_historial.pack(fill=tk.BOTH, expand=True)
     
     def generar_pedido_automatico(self):
-        """
-        Envía una solicitud al controlador para analizar faltantes y disparar órdenes automáticas.
-        """
         if Alertas.preguntar_si("¿Generar pedido automático para todos los productos con stock bajo?"):
             try:
                 pedidos = PedidoController.generar_pedido_automatico()
-                if pedidos:
-                    Alertas.mostrar_mensaje_exito(f"Se generaron {len(pedidos)} pedidos automáticos")
+                if pedidos and len(pedidos) > 0:
+                    Alertas.mostrar_mensaje_exito(f"✅ Se generaron {len(pedidos)} pedidos automáticos")
                     self.cargar_datos()
                     self.actualizar_tabla_pedidos()
+                    self.actualizar_tabla_stock_bajo()
+                    # Notificar evento
+                    Eventos.notificar(EVENTO_PEDIDO_CREADO)
                 else:
-                    Alertas.mostrar_mensaje_advertencia("No hay productos con stock bajo o sin proveedor asignado")
+                    Alertas.mostrar_mensaje_advertencia(
+                        "No hay productos con stock bajo o sin proveedor asignado.\n\n"
+                        "Para generar pedidos automáticos, asegúrese que:\n"
+                        "1. Los productos tengan un proveedor asignado\n"
+                        "2. El stock sea menor o igual al mínimo"
+                    )
             except Exception as e:
                 Alertas.mostrar_mensaje_error(f"Error: {str(e)}")
     
     def generar_pedido_seleccionados(self):
-        """
-        (En Desarrollo) Permite generar una orden de reposición sólo con los productos marcados.
-        """
         seleccion = self.tabla_stock_bajo.selection()
         if not seleccion:
             Alertas.mostrar_mensaje_advertencia("Seleccione al menos un producto")
             return
         
         Alertas.mostrar_mensaje_informacion("Funcionalidad en desarrollo", 
-                                             "Próximamente podrá generar pedidos personalizados")
+                                            "Próximamente podrá generar pedidos personalizados")
     
     def nuevo_pedido(self):
-        """
-        Abre el formulario modal de ingreso manual de órdenes de compra.
-        """
         NuevoPedidoWindow(self.window, self.usuario, self.cargar_datos)
 
 
 class NuevoPedidoWindow:
-    """
-    Diálogo modal de creación manual de órdenes de pedido a proveedores.
-    """
-    
     def __init__(self, parent, usuario, callback_refresh):
-        """
-        Inicializa y configura la ventana de nuevo pedido manual.
-
-        Args:
-            parent (tk.Widget): Ventana padre.
-            usuario (dict): Datos del usuario activo.
-            callback_refresh (callable): Callback para refrescar listas al finalizar.
-        """
         self.parent = parent
         self.usuario = usuario
         self.callback_refresh = callback_refresh
@@ -266,18 +219,12 @@ class NuevoPedidoWindow:
         self.window.focus_force()
     
     def cargar_datos(self):
-        """
-        Carga catálogos de proveedores y productos para el formulario manual.
-        """
         self.proveedores = StockController.get_proveedores()
         self.productos = StockController.get_all_productos()
     
     def crear_widgets(self):
-        """
-        Dibuja los controles de cabecera y el frame de inserción de filas para el pedido.
-        """
         # Título
-        tk.Label(self.window, text=" NUEVO PEDIDO", 
+        tk.Label(self.window, text="📝 NUEVO PEDIDO", 
                 font=("Arial", 16, "bold"), bg='#F0F0F0').pack(pady=10)
         
         # Frame de datos del pedido
@@ -318,7 +265,7 @@ class NuevoPedidoWindow:
         self.entry_cantidad.pack(side=tk.LEFT, padx=5)
         self.entry_cantidad.insert(0, "1")
         
-        tk.Button(frame_producto, text=" Agregar", command=self.agregar_producto,
+        tk.Button(frame_producto, text="➕ Agregar", command=self.agregar_producto,
                  bg='#28A745', fg='white').pack(side=tk.LEFT, padx=10)
         
         # Tabla de productos del pedido
@@ -354,16 +301,13 @@ class NuevoPedidoWindow:
         frame_botones = tk.Frame(self.window, bg='#F0F0F0')
         frame_botones.pack(fill=tk.X, padx=10, pady=10)
         
-        tk.Button(frame_botones, text=" Guardar Pedido", command=self.guardar_pedido,
+        tk.Button(frame_botones, text="💾 Guardar Pedido", command=self.guardar_pedido,
                  bg='#28A745', fg='white', font=("Arial", 12, "bold"), padx=30).pack(side=tk.RIGHT, padx=5)
         
         tk.Button(frame_botones, text="Cancelar", command=self.window.destroy,
                  bg='#6C757D', fg='white', padx=20).pack(side=tk.RIGHT, padx=5)
     
     def agregar_producto(self):
-        """
-        Valida la fila agregada y la inserta en la lista temporal de productos del pedido.
-        """
         seleccion = self.combo_producto.get()
         if not seleccion:
             Alertas.mostrar_mensaje_advertencia("Seleccione un producto")
@@ -388,6 +332,7 @@ class NuevoPedidoWindow:
         for i, prod in enumerate(self.productos_seleccionados):
             if prod['id_producto'] == producto.id_producto:
                 self.productos_seleccionados[i]['cantidad'] += cantidad
+                self.productos_seleccionados[i]['subtotal'] = self.productos_seleccionados[i]['cantidad'] * producto.precio_compra
                 break
         else:
             self.productos_seleccionados.append({
@@ -405,9 +350,6 @@ class NuevoPedidoWindow:
         self.entry_cantidad.insert(0, "1")
     
     def actualizar_tabla(self):
-        """
-        Refresca la visualización de la lista de productos agregados al pedido temporal.
-        """
         for item in self.tabla_productos.get_children():
             self.tabla_productos.delete(item)
         
@@ -417,16 +359,13 @@ class NuevoPedidoWindow:
                 prod['cantidad'],
                 f"${prod['precio_compra']:,.2f}",
                 f"${prod['subtotal']:,.2f}",
-                " Eliminar"
+                "🗑️ Eliminar"
             ), tags=(i,))
         
         # Vincular evento de clic para eliminar
         self.tabla_productos.bind('<ButtonRelease-1>', self.on_click_tabla)
     
     def on_click_tabla(self, event):
-        """
-        Detecta clics dentro del Treeview para procesar la acción de 'Eliminar' fila del pedido.
-        """
         region = self.tabla_productos.identify_region(event.x, event.y)
         if region == "cell":
             column = self.tabla_productos.identify_column(event.x)
@@ -444,9 +383,6 @@ class NuevoPedidoWindow:
                     self.actualizar_tabla()
     
     def guardar_pedido(self):
-        """
-        (En Desarrollo) Valida los datos e inicia el guardado del pedido de compra.
-        """
         if not self.combo_proveedor.get():
             Alertas.mostrar_mensaje_advertencia("Seleccione un proveedor")
             return
@@ -455,6 +391,74 @@ class NuevoPedidoWindow:
             Alertas.mostrar_mensaje_advertencia("Agregue al menos un producto")
             return
         
-        Alertas.mostrar_mensaje_informacion("En desarrollo", 
-                                            "Próximamente se podrán guardar pedidos manuales")
-        self.window.destroy()
+        try:
+            # Crear pedido en la base de datos
+            conexion = None
+            try:
+                from utils.database import get_connection
+                conexion = get_connection()
+                cursor = conexion.cursor()
+                
+                # Obtener ID del proveedor
+                proveedor_nombre = self.combo_proveedor.get()
+                proveedor_id = None
+                for p in self.proveedores:
+                    if p.nombre == proveedor_nombre:
+                        proveedor_id = p.id_proveedor
+                        break
+                
+                if not proveedor_id:
+                    Alertas.mostrar_mensaje_error("Proveedor no encontrado")
+                    return
+                
+                # Generar número de pedido
+                from datetime import datetime
+                numero_pedido = f"MAN-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+                
+                # Insertar pedido
+                cursor.execute("""
+                    INSERT INTO pedidos (numero_pedido, id_proveedor, fecha_pedido, id_estado, observaciones)
+                    VALUES (%s, %s, NOW(), 1, %s)
+                """, (numero_pedido, proveedor_id, self.entry_obs.get()))
+                
+                id_pedido = cursor.lastrowid
+                
+                # Insertar detalles
+                subtotal_total = 0
+                for prod in self.productos_seleccionados:
+                    subtotal = prod['cantidad'] * prod['precio_compra']
+                    subtotal_total += subtotal
+                    cursor.execute("""
+                        INSERT INTO detalles_pedido (id_pedido, id_producto, cantidad, precio_unitario, subtotal)
+                        VALUES (%s, %s, %s, %s, %s)
+                    """, (id_pedido, prod['id_producto'], prod['cantidad'], prod['precio_compra'], subtotal))
+                
+                # Actualizar totales
+                iva = subtotal_total * 0.21
+                total = subtotal_total + iva
+                cursor.execute("""
+                    UPDATE pedidos SET subtotal = %s, iva = %s, total = %s WHERE id_pedido = %s
+                """, (subtotal_total, iva, total, id_pedido))
+                
+                conexion.commit()
+                Alertas.mostrar_mensaje_exito(f" Pedido {numero_pedido} creado exitosamente!")
+                
+                # Notificar evento
+                Eventos.notificar(EVENTO_PEDIDO_CREADO)
+                
+                # Actualizar listas
+                if self.callback_refresh:
+                    self.callback_refresh()
+                
+                self.window.destroy()
+                
+            except Exception as e:
+                if conexion:
+                    conexion.rollback()
+                Alertas.mostrar_mensaje_error(f"Error al guardar pedido: {str(e)}")
+            finally:
+                if conexion:
+                    conexion.close()
+                    
+        except Exception as e:
+            Alertas.mostrar_mensaje_error(f"Error: {str(e)}")

@@ -1,21 +1,16 @@
-
-# -*- coding: utf-8 -*-
-"""
-Paquete de Utilidades del Sistema.
-
-Este paquete agrupa herramientas auxiliares de uso transversal en la aplicación:
-- Manejo y pool de conexiones a Base de Datos (database.py).
-- Ventanas emergentes y notificaciones al usuario (alertas.py).
-- Funciones helper para fechas, precios y validaciones generales (helpers.py).
-"""
-
-from .database import get_connection, close_connection, execute_query
+# utils/__init__.py
+from .database import get_connection, close_connection
 from .helpers import *
 from .alertas import Alertas
+from .eventos import Eventos, EVENTO_STOCK_ACTUALIZADO, EVENTO_VENTA_REGISTRADA, EVENTO_PRODUCTO_AGREGADO, EVENTO_PEDIDO_CREADO
 
 __all__ = [
     'get_connection',
     'close_connection',
-    'execute_query',
-    'Alertas'
+    'Alertas',
+    'Eventos',
+    'EVENTO_STOCK_ACTUALIZADO',
+    'EVENTO_VENTA_REGISTRADA',
+    'EVENTO_PRODUCTO_AGREGADO',
+    'EVENTO_PEDIDO_CREADO'
 ]

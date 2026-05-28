@@ -1,56 +1,28 @@
-# -*- coding: utf-8 -*-
-"""
-Controlador de Ventas y Facturación del Sistema.
-"""
-
 import mysql.connector
 from models import Venta, DetalleVenta
 from utils.database import get_connection
 from datetime import datetime
 
 class VentaController:
-    """
-    Controlador encargado de gestionar las operaciones de ventas y transacciones de caja.
-
-    Proporciona métodos estáticos para registrar nuevas ventas (afectando stock y bitácora),
-    y para consultar las ventas y totales del día corriente.
-    """
-
     @staticmethod
     def registrar_venta(venta):
-        """
-        Registra una venta de productos en la base de datos dentro de una transacción.
-
-        Este proceso realiza múltiples operaciones en la base de datos:
-        1. Inserta la venta en la tabla `ventas` con estado Completada (id_estado = 2).
-        2. Inserta cada detalle del producto vendido en `detalles_venta`.
-        3. Descuenta del inventario actual en `productos` la cantidad correspondiente.
-        4. Registra un movimiento de tipo Venta en `movimientos_stock` por cada producto.
-
-        Args:
-            venta (Venta): Objeto de tipo `models.Venta` que contiene el cliente, usuario y detalles de venta.
-
-        Returns:
-            Venta: El objeto `Venta` con su `id_venta` asignado tras la inserción exitosa.
-
-        Raises:
-            Exception: Si falla cualquier inserción SQL o la actualización de stock (provoca Rollback).
-        """
         conexion = get_connection()
         cursor = conexion.cursor()
         
         try:
             conexion.start_transaction()
             
-            # Insertar venta
+            subtotal = venta.subtotal
+            iva = venta.iva
+            total = venta.total
+            
             cursor.execute("""
-                INSERT INTO ventas (numero_factura, cliente_nombre, usuario, id_estado)
-                VALUES (%s, %s, %s, 2)
-            """, (venta.numero_factura, venta.cliente_nombre, venta.usuario))
+                INSERT INTO ventas (numero_factura, cliente_nombre, subtotal, iva, total, usuario, id_estado, fecha_venta)
+                VALUES (%s, %s, %s, %s, %s, %s, 2, NOW())
+            """, (venta.numero_factura, venta.cliente_nombre, subtotal, iva, total, venta.usuario))
             
             venta.id_venta = cursor.lastrowid
             
-            # Insertar detalles y actualizar stock
             for detalle in venta.detalles:
                 cursor.execute("""
                     INSERT INTO detalles_venta (id_venta, id_producto, cantidad, 
@@ -59,28 +31,30 @@ class VentaController:
                 """, (venta.id_venta, detalle.id_producto, detalle.cantidad,
                       detalle.precio_unitario, detalle.subtotal))
                 
-                # Actualizar stock (cantidad negativa)
+                cursor.execute("SELECT stock_actual FROM productos WHERE id_producto = %s", (detalle.id_producto,))
+                stock_actual = cursor.fetchone()[0]
+                stock_nuevo = stock_actual - detalle.cantidad
+                
                 cursor.execute("""
                     UPDATE productos 
-                    SET stock_actual = stock_actual - %s 
+                    SET stock_actual = %s 
                     WHERE id_producto = %s
-                """, (detalle.cantidad, detalle.id_producto))
+                """, (stock_nuevo, detalle.id_producto))
                 
-                # Registrar movimiento
                 cursor.execute("""
                     INSERT INTO movimientos_stock (id_producto, id_tipo_movimiento, cantidad,
                                                    stock_antes, stock_despues, referencia_tipo,
-                                                   referencia_id, usuario)
-                    SELECT %s, 1, -%s, stock_actual + %s, stock_actual, 'venta', %s, %s
-                    FROM productos WHERE id_producto = %s
-                """, (detalle.id_producto, detalle.cantidad, detalle.cantidad,
-                      venta.id_venta, venta.usuario, detalle.id_producto))
+                                                   referencia_id, usuario, fecha)
+                    VALUES (%s, 1, %s, %s, %s, 'venta', %s, %s, NOW())
+                """, (detalle.id_producto, -detalle.cantidad, stock_actual, stock_nuevo, venta.id_venta, venta.usuario))
             
             conexion.commit()
+            print(f" Venta {venta.numero_factura} registrada - Total: ${total:.2f}")
             return venta
             
         except Exception as e:
             conexion.rollback()
+            print(f" Error: {e}")
             raise e
         finally:
             cursor.close()
@@ -88,13 +62,6 @@ class VentaController:
     
     @staticmethod
     def get_ventas_hoy():
-        """
-        Obtiene las ventas registradas durante el día actual.
-
-        Returns:
-            list: Lista de diccionarios que representan los registros de ventas de hoy,
-                  incluyendo el conteo de tipos de producto en cada venta, ordenados por fecha/hora descendente.
-        """
         conexion = get_connection()
         cursor = conexion.cursor(dictionary=True)
         
@@ -115,20 +82,14 @@ class VentaController:
     
     @staticmethod
     def get_resumen_dia():
-        """
-        Calcula un resumen estadístico y financiero de las ventas completadas del día.
-
-        Returns:
-            dict: Diccionario con el total de ventas (conteo), monto total recaudado y promedio de venta (ticket promedio).
-        """
         conexion = get_connection()
         cursor = conexion.cursor(dictionary=True)
         
         cursor.execute("""
             SELECT 
-                COUNT(*) as total_ventas,
-                SUM(total) as monto_total,
-                AVG(total) as promedio_venta
+                COALESCE(COUNT(*), 0) as total_ventas,
+                COALESCE(SUM(total), 0) as monto_total,
+                COALESCE(AVG(total), 0) as promedio_venta
             FROM ventas
             WHERE DATE(fecha_venta) = CURDATE()
             AND id_estado = 2
@@ -137,4 +98,7 @@ class VentaController:
         resultado = cursor.fetchone()
         cursor.close()
         conexion.close()
+        
+        if not resultado or resultado['total_ventas'] is None:
+            return {'total_ventas': 0, 'monto_total': 0, 'promedio_venta': 0}
         return resultado

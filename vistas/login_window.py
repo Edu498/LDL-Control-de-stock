@@ -1,25 +1,11 @@
-# -*- coding: utf-8 -*-
-"""
-Ventana de Login y Autenticación del Sistema.
-"""
-
+# vistas/login_window.py
 import tkinter as tk
 from tkinter import ttk, messagebox
 import sys
 import os
 
 class LoginWindow:
-    """
-    Representa la ventana de inicio de sesión de la aplicación.
-
-    Crea una interfaz Tkinter donde el usuario ingresa sus credenciales de acceso.
-    Si las credenciales son válidas, abre la ventana principal (`MainWindow`) y destruye la ventana de login.
-    """
-    
     def __init__(self):
-        """
-        Inicializa y configura la ventana de login, cargando la interfaz y los manejadores de eventos.
-        """
         self.window = tk.Tk()
         self.window.title("Sistema de Control de Stock - Login")
         self.window.geometry("450x420")
@@ -35,9 +21,6 @@ class LoginWindow:
         self.window.mainloop()
     
     def _crear_interfaz(self):
-        """
-        Crea los controles y el diseño visual de la ventana de login.
-        """
         frame = tk.Frame(self.window, bg='white', relief=tk.RAISED, bd=1)
         frame.pack(expand=True, fill=tk.BOTH, padx=25, pady=25)
         
@@ -81,28 +64,16 @@ class LoginWindow:
         tk.Label(frame, text="© 2024 - Sistema Profesional", font=("Segoe UI", 8), bg='white', fg='#95A5A6').pack(side=tk.BOTTOM, pady=10)
     
     def _configurar_eventos(self):
-        """
-        Configura los atajos de teclado y el foco inicial en los campos de entrada.
-        """
         self.window.bind('<Return>', lambda e: self._login())
         self.entry_usuario.focus()
     
     def _toggle_password(self):
-        """
-        Muestra u oculta la contraseña en texto plano según la opción seleccionada.
-        """
         if self.show_password.get():
             self.entry_password.config(show="")
         else:
             self.entry_password.config(show="•")
     
     def _login(self):
-        """
-        Realiza el proceso de validación de las credenciales ingresadas.
-
-        Verifica si el usuario y la contraseña ingresados coinciden con la cuenta
-        de administrador. Si es correcto, inicia la `MainWindow`.
-        """
         usuario = self.entry_usuario.get().strip()
         password = self.entry_password.get()
         

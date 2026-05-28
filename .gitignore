@@ -1,9 +1,44 @@
-# Archivos compilados de Python
+# Crea el archivo .gitignore
+cat > .gitignore << 'EOF'
+# Python
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
-
-# Entornos virtuales (por si acaso usan alguno)
-venv/
+*.py[cod]
+*$py.class
+*.so
+.Python
 env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Base de datos
+*.db
+*.sqlite
+*.sqlite3
+
+# Configuración local
+db_config.json
+config_local.py
+*.log
+
+# Archivos temporales
+*.tmp
+*.bak
+*.swp
+*.swo
+*~
+
+# IDE
+.vscode/
+.idea/
+*.sublime-*
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
+
+# Reportes exportados
+*.csv
+*.xlsx
+EOF

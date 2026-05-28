@@ -1,31 +1,13 @@
-# -*- coding: utf-8 -*-
-"""
-Ventana de Facturación y Registro de Ventas (Punto de Venta - POS).
-"""
-
+# vistas/ventas_window.py
 import tkinter as tk
 from tkinter import ttk, messagebox
 from datetime import datetime
 from controllers import StockController, VentaController
 from utils import Alertas, formatear_precio, generar_numero_factura
+from utils.eventos import Eventos, EVENTO_VENTA_REGISTRADA, EVENTO_STOCK_ACTUALIZADO
 
 class VentasWindow:
-    """
-    Punto de Venta (POS) para facturar productos en tiempo real.
-
-    Permite buscar productos activos con stock disponible, agregarlos a un carrito
-    de compras con cantidades dinámicas, calcular subtotales, IVA y total de forma automática,
-    y persistir la venta emitiendo un número de factura único.
-    """
-    
     def __init__(self, parent, usuario):
-        """
-        Inicializa e inicia la pantalla de facturación de ventas.
-
-        Args:
-            parent (tk.Widget): Ventana padre.
-            usuario (dict): Datos del usuario activo que registra la venta.
-        """
         self.parent = parent
         self.usuario = usuario
         self.carrito = []
@@ -44,35 +26,24 @@ class VentasWindow:
         self.window.focus_force()
     
     def cargar_datos(self):
-        """
-        Consulta el listado completo de productos para permitir la venta rápida.
-        """
         self.productos = StockController.get_all_productos()
         self.productos_dict = {p.codigo: p for p in self.productos}
     
     def crear_widgets(self):
-        """
-        Dibuja los paneles del POS (catálogo de búsqueda a la izquierda y carrito/facturación a la derecha).
-        """
-        # Título
-        tk.Label(self.window, text=" REGISTRO DE VENTAS", 
+        tk.Label(self.window, text="📝 REGISTRO DE VENTAS", 
                 font=("Arial", 16, "bold"), bg='#F0F0F0').pack(pady=10)
         
-        # Frame principal (dividido en dos partes)
         frame_principal = tk.Frame(self.window, bg='#F0F0F0')
         frame_principal.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         
-        # Panel izquierdo - Búsqueda y productos
         frame_izquierdo = tk.Frame(frame_principal, bg='white', relief=tk.RAISED, bd=1)
         frame_izquierdo.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 5))
         
-        # Panel derecho - Carrito
         frame_derecho = tk.Frame(frame_principal, bg='white', relief=tk.RAISED, bd=1)
         frame_derecho.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=(5, 0))
         
-        # ========== PANEL IZQUIERDO ==========
-        # Búsqueda de productos
-        tk.Label(frame_izquierdo, text=" Buscar Producto:", 
+        # Panel izquierdo
+        tk.Label(frame_izquierdo, text="🔍 Buscar Producto:", 
                 font=("Arial", 12, "bold"), bg='white').pack(pady=5)
         
         frame_busqueda = tk.Frame(frame_izquierdo, bg='white')
@@ -85,7 +56,6 @@ class VentasWindow:
         tk.Button(frame_busqueda, text="Buscar", command=self.buscar_productos,
                  bg='#007BFF', fg='white').pack(side=tk.LEFT)
         
-        # Tabla de productos
         frame_tabla = tk.Frame(frame_izquierdo)
         frame_tabla.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         
@@ -104,7 +74,6 @@ class VentasWindow:
         scrollbar.config(command=self.tabla_productos.yview)
         self.tabla_productos.pack(fill=tk.BOTH, expand=True)
         
-        # Frame de cantidad
         frame_cantidad = tk.Frame(frame_izquierdo, bg='white')
         frame_cantidad.pack(fill=tk.X, padx=10, pady=10)
         
@@ -116,12 +85,11 @@ class VentasWindow:
         self.spin_cantidad.delete(0, tk.END)
         self.spin_cantidad.insert(0, "1")
         
-        tk.Button(frame_cantidad, text=" Agregar al Carrito", command=self.agregar_al_carrito,
+        tk.Button(frame_cantidad, text="➕ Agregar al Carrito", command=self.agregar_al_carrito,
                  bg='#28A745', fg='white', font=("Arial", 10, "bold"), padx=20).pack(side=tk.RIGHT)
         
-        # ========== PANEL DERECHO ==========
-        # Datos del cliente
-        tk.Label(frame_derecho, text=" Datos del Cliente:", 
+        # Panel derecho
+        tk.Label(frame_derecho, text="👤 Datos del Cliente:", 
                 font=("Arial", 12, "bold"), bg='white').pack(pady=5)
         
         frame_cliente = tk.Frame(frame_derecho, bg='white')
@@ -132,8 +100,7 @@ class VentasWindow:
         self.entry_cliente.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
         self.entry_cliente.insert(0, "CONSUMIDOR FINAL")
         
-        # Carrito de compras
-        tk.Label(frame_derecho, text=" Carrito de Compras:", 
+        tk.Label(frame_derecho, text="🛒 Carrito de Compras:", 
                 font=("Arial", 12, "bold"), bg='white').pack(pady=5)
         
         frame_carrito = tk.Frame(frame_derecho)
@@ -154,7 +121,6 @@ class VentasWindow:
         scrollbar_carrito.config(command=self.tabla_carrito.yview)
         self.tabla_carrito.pack(fill=tk.BOTH, expand=True)
         
-        # Totales
         frame_totales = tk.Frame(frame_derecho, bg='white')
         frame_totales.pack(fill=tk.X, padx=10, pady=10)
         
@@ -176,26 +142,21 @@ class VentasWindow:
                                    font=("Arial", 14, "bold"), fg='#28A745')
         self.lbl_total.pack(anchor=tk.E)
         
-        # Botones de acción
         frame_botones = tk.Frame(frame_derecho, bg='white')
         frame_botones.pack(fill=tk.X, padx=10, pady=10)
         
-        tk.Button(frame_botones, text=" Eliminar", command=self.eliminar_del_carrito,
+        tk.Button(frame_botones, text="🗑️ Eliminar", command=self.eliminar_del_carrito,
                  bg='#FFC107', fg='black', padx=20).pack(side=tk.LEFT, padx=5)
         
-        tk.Button(frame_botones, text=" Limpiar Carrito", command=self.limpiar_carrito,
+        tk.Button(frame_botones, text="🧹 Limpiar Carrito", command=self.limpiar_carrito,
                  bg='#6C757D', fg='white', padx=20).pack(side=tk.LEFT, padx=5)
         
-        tk.Button(frame_botones, text=" Registrar Venta", command=self.registrar_venta,
+        tk.Button(frame_botones, text="💾 Registrar Venta", command=self.registrar_venta,
                  bg='#28A745', fg='white', font=("Arial", 12, "bold"), padx=30).pack(side=tk.RIGHT)
         
-        # Cargar productos
         self.actualizar_tabla_productos()
     
     def actualizar_tabla_productos(self):
-        """
-        Llena el catálogo izquierdo sólo con aquellos productos que cuenten con stock mayor a cero.
-        """
         for item in self.tabla_productos.get_children():
             self.tabla_productos.delete(item)
         
@@ -206,9 +167,6 @@ class VentasWindow:
                 ))
     
     def buscar_productos(self, event=None):
-        """
-        Filtra dinámicamente los productos disponibles para la venta según el criterio de búsqueda.
-        """
         texto = self.entry_busqueda.get().lower()
         
         for item in self.tabla_productos.get_children():
@@ -221,10 +179,6 @@ class VentasWindow:
                 ))
     
     def agregar_al_carrito(self):
-        """
-        Agrega el producto seleccionado con la cantidad indicada al carrito de compras virtual.
-        Realiza validaciones de disponibilidad de stock.
-        """
         seleccion = self.tabla_productos.selection()
         if not seleccion:
             Alertas.mostrar_mensaje_advertencia("Seleccione un producto")
@@ -250,7 +204,6 @@ class VentasWindow:
             Alertas.mostrar_mensaje_advertencia(f"Stock insuficiente. Solo hay {producto.stock_actual} unidades")
             return
         
-        # Verificar si ya está en el carrito
         for i, item_carrito in enumerate(self.carrito):
             if item_carrito['id_producto'] == producto.id_producto:
                 nueva_cantidad = item_carrito['cantidad'] + cantidad
@@ -275,9 +228,6 @@ class VentasWindow:
         self.spin_cantidad.insert(0, "1")
     
     def actualizar_carrito(self):
-        """
-        Refresca la tabla del carrito y vuelve a calcular subtotales, IVA e importes totales.
-        """
         for item in self.tabla_carrito.get_children():
             self.tabla_carrito.delete(item)
         
@@ -297,9 +247,6 @@ class VentasWindow:
         self.lbl_total.config(text=f"${total:,.2f}")
     
     def eliminar_del_carrito(self):
-        """
-        Quita la fila seleccionada del carrito virtual y actualiza totales.
-        """
         seleccion = self.tabla_carrito.selection()
         if not seleccion:
             Alertas.mostrar_mensaje_advertencia("Seleccione un item del carrito")
@@ -316,25 +263,17 @@ class VentasWindow:
         self.actualizar_carrito()
     
     def limpiar_carrito(self):
-        """
-        Vacía por completo el carrito de compras tras confirmar la acción.
-        """
         if self.carrito and Alertas.preguntar_si("¿Limpiar todo el carrito?"):
             self.carrito = []
             self.actualizar_carrito()
     
     def registrar_venta(self):
-        """
-        Construye el objeto de venta con sus detalles, invoca al controlador
-        para registrar la transacción, disminuye el stock físico e imprime confirmación.
-        """
         if not self.carrito:
             Alertas.mostrar_mensaje_advertencia("El carrito está vacío")
             return
         
         from models import Venta, DetalleVenta
         
-        # Crear objeto venta
         venta = Venta(
             numero_factura=generar_numero_factura(),
             cliente_nombre=self.entry_cliente.get().strip() or "CONSUMIDOR FINAL",
@@ -351,14 +290,27 @@ class VentasWindow:
         
         try:
             VentaController.registrar_venta(venta)
-            Alertas.mostrar_mensaje_exito(f"Venta registrada exitosamente\nFactura: {venta.numero_factura}\nTotal: ${venta.total:,.2f}")
             
-            # Limpiar y recargar
+            # NOTIFICAR EVENTOS
+            Eventos.notificar(EVENTO_VENTA_REGISTRADA, {
+                'factura': venta.numero_factura,
+                'total': venta.total
+            })
+            Eventos.notificar(EVENTO_STOCK_ACTUALIZADO)
+            
+            Alertas.mostrar_mensaje_exito(f"✅ Venta registrada exitosamente!\nFactura: {venta.numero_factura}\nTotal: ${venta.total:,.2f}")
+            
             self.limpiar_carrito()
             self.cargar_datos()
             self.actualizar_tabla_productos()
             self.entry_cliente.delete(0, tk.END)
             self.entry_cliente.insert(0, "CONSUMIDOR FINAL")
             
+            # ACTUALIZAR DASHBOARD
+            if hasattr(self.parent, '_refrescar_datos'):
+                self.parent._refrescar_datos()
+            
+            self.window.destroy()
+            
         except Exception as e:
-            Alertas.mostrar_mensaje_error(f"Error al registrar la venta: {str(e)}")
+            Alertas.mostrar_mensaje_error(f"❌ Error al registrar la venta: {str(e)}")
