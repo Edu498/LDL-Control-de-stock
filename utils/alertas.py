@@ -116,7 +116,11 @@ class Alertas:
     
     @staticmethod
     def _sugerir_pedido(parent):
-        """Sugiere generar un pedido automático"""
+        """
+        Sugiere generar un pedido automático
+        Args:
+            parent: Ventana padre
+        """
         respuesta = messagebox.askyesno(
             "Generar Pedido",
             "¿Desea generar un pedido automático con los productos faltantes?\n\n"
@@ -130,25 +134,52 @@ class Alertas:
     
     @staticmethod
     def mostrar_mensaje_exito(mensaje, titulo="Éxito"):
-        """Muestra mensaje de éxito"""
+        """
+        Muestra mensaje de éxito
+        Args:
+            mensaje: Mensaje a mostrar
+            titulo: Título de la alerta
+        """
         messagebox.showinfo(titulo, mensaje)
     
     @staticmethod
     def mostrar_mensaje_error(mensaje, titulo="Error"):
-        """Muestra mensaje de error"""
+        """
+        Muestra mensaje de error
+        Args:
+            mensaje: Mensaje a mostrar
+            titulo: Título de la alerta
+        """
         messagebox.showerror(titulo, mensaje)
     
     @staticmethod
     def mostrar_mensaje_advertencia(mensaje, titulo="Advertencia"):
-        """Muestra mensaje de advertencia"""
+        """
+        Muestra mensaje de advertencia
+        Args:
+            mensaje: Mensaje a mostrar
+            titulo: Título de la alerta
+        """
         messagebox.showwarning(titulo, mensaje)
     
     @staticmethod
     def mostrar_mensaje_informacion(mensaje, titulo="Información"):
-        """Muestra mensaje informativo"""
+        """
+        Muestra mensaje informativo
+        Args:
+            mensaje: Mensaje a mostrar
+            titulo: Título de la alerta
+        """
         messagebox.showinfo(titulo, mensaje)
     
     @staticmethod
     def preguntar_si(mensaje, titulo="Confirmar"):
-        """Pregunta al usuario si/no"""
+        """
+        Pregunta al usuario si/no
+        Args:
+            mensaje: Mensaje a mostrar
+            titulo: Título de la alerta
+        Returns:
+            bool: True si el usuario responde sí, False si responde no
+        """
         return messagebox.askyesno(titulo, mensaje)

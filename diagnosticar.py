@@ -5,7 +5,16 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from utils.database import get_connection
 
+"""
+    Diagnosticar.py
+    Módulo de diagnóstico de la base de datos
+    En caso de error, mostrará los errores específicos de la base de datos
+"""
 def diagnosticar():
+    """
+    Diagnostica la base de datos y muestra información sobre los tipos de movimiento, 
+    últimos 10 movimientos y productos con stock bajo
+    """
     print("=" * 60)
     print("DIAGNÓSTICO DE BASE DE DATOS")
     print("=" * 60)
@@ -33,6 +42,11 @@ def diagnosticar():
         """)
         
         for m in cursor.fetchall():
+            """
+            Muestra los últimos 10 movimientos de la base de datos
+            Args:
+                m: Movimiento de la base de datos
+            """
             tipo = "ENTRADA" if m['cantidad'] > 0 else "SALIDA"
             print(f"   ID:{m['id_movimiento']:3} | {m['producto'][:25]:25} | Cant:{m['cantidad']:4} | {tipo} | {m['fecha']}")
         
@@ -40,6 +54,11 @@ def diagnosticar():
         print("\n3. PRODUCTOS (primeros 5):")
         cursor.execute("SELECT id_producto, nombre, stock_actual, stock_minimo FROM productos LIMIT 5")
         for p in cursor.fetchall():
+            """
+            Muestra los productos con stock bajo de la base de datos
+            Args:
+                p: Producto de la base de datos
+            """
             estado = "CRITICO" if p['stock_actual'] <= p['stock_minimo'] else "NORMAL"
             print(f"   ID:{p['id_producto']:2} | {p['nombre'][:25]:25} | Stock:{p['stock_actual']:3} | Min:{p['stock_minimo']} | {estado}")
         
@@ -47,9 +66,17 @@ def diagnosticar():
         conn.close()
         
     except Exception as e:
+        """
+        Maneja las excepciones que puedan ocurrir durante el diagnóstico
+        Args:
+            e: Excepción que ocurrió durante el diagnóstico
+        """
         print(f"Error: {e}")
         import traceback
         traceback.print_exc()
 
 if __name__ == "__main__":
+    """
+    Función principal que ejecuta el diagnóstico de la base de datos
+    """
     diagnosticar()

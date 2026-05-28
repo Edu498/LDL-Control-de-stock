@@ -2,12 +2,15 @@
 import mysql.connector
 
 def crear_base_datos():
+    """
+    Crea la base de datos control_stock y sus tablas
+    """
     try:
         # Conectar sin seleccionar base de datos
         conexion = mysql.connector.connect(
             host="localhost",
             user="root",
-            password="Arcangeles369"
+            password="root"
         )
         cursor = conexion.cursor()
         

@@ -1,18 +1,28 @@
-# controllers/pedido_controller.py
-from utils.database import get_connection
+from utils.database import get_connection, execute_query, close_connection
 from datetime import datetime
 
 class PedidoController:
+    """
+    Controlador para la gestión y generación de pedidos a proveedores.
+    """
     
     @staticmethod
     def generar_pedido_automatico():
-        conexion = get_connection()
-        cursor = conexion.cursor()
+        """
+        Genera pedidos automáticos agrupados por proveedor para todos los 
+        productos que se encuentren por debajo de su umbral de stock mínimo.
+        
+        Returns:
+            list: Una lista con los IDs de los pedidos generados exitosamente.
+        """
+        conexion = None
+        cursor = None
         
         try:
+            conexion = get_connection()
+            cursor = conexion.cursor()
             conexion.start_transaction()
             
-            # Obtener productos con stock bajo agrupados por proveedor
             cursor.execute("""
                 SELECT 
                     id_proveedor,
@@ -21,7 +31,7 @@ class PedidoController:
                     GROUP_CONCAT(cantidad_recomendada) as cantidades,
                     GROUP_CONCAT(nombre) as nombres
                 FROM vw_stock_alertas 
-                WHERE estado_stock IN ('STOCK BAJO', 'SIN STOCK') 
+                WHERE stock_actual <= stock_minimo 
                 AND proveedor != 'Sin proveedor'
                 AND id_proveedor IS NOT NULL
                 GROUP BY id_proveedor, proveedor
@@ -83,50 +93,50 @@ class PedidoController:
                 """, (id_pedido, id_pedido, id_pedido, id_pedido))
             
             conexion.commit()
-            print(f" Se generaron {len(pedidos_generados)} pedidos automáticos")
+            print(f"✅ Se generaron {len(pedidos_generados)} pedidos automáticos")
             return pedidos_generados
             
         except Exception as e:
-            conexion.rollback()
-            print(f" Error al generar pedido automático: {e}")
+            if conexion:
+                conexion.rollback()
+            print(f"❌ Error al generar pedido automático: {e}")
             return []
         finally:
-            cursor.close()
-            conexion.close()
+            close_connection(conexion, cursor)
     
     @staticmethod
     def get_pedidos_pendientes():
-        conexion = get_connection()
-        cursor = conexion.cursor(dictionary=True)
+        """
+        Obtiene todos los pedidos que se encuentran en estado pendiente o enviado.
         
-        cursor.execute("""
+        Returns:
+            list: Lista de diccionarios con la información de los pedidos y sus proveedores.
+        """
+        query = """
             SELECT p.*, pr.nombre as proveedor_nombre,
                    (SELECT COUNT(*) FROM detalles_pedido WHERE id_pedido = p.id_pedido) as cantidad_productos
             FROM pedidos p
             JOIN proveedores pr ON p.id_proveedor = pr.id_proveedor
             WHERE p.id_estado IN (1, 2)
             ORDER BY p.fecha_pedido DESC
-        """)
-        
-        pedidos = cursor.fetchall()
-        cursor.close()
-        conexion.close()
-        return pedidos
+        """
+        return execute_query(query, fetch_all=True)
     
     @staticmethod
     def get_detalles_pedido(id_pedido):
-        """Obtiene los detalles de un pedido específico"""
-        conexion = get_connection()
-        cursor = conexion.cursor(dictionary=True)
+        """
+        Obtiene la lista de productos y subtotales vinculados a un pedido específico.
         
-        cursor.execute("""
+        Args:
+            id_pedido (int): Identificador único del pedido.
+            
+        Returns:
+            list: Lista de diccionarios con los detalles de los productos del pedido.
+        """
+        query = """
             SELECT dp.*, p.nombre as producto_nombre, p.codigo
             FROM detalles_pedido dp
             JOIN productos p ON dp.id_producto = p.id_producto
             WHERE dp.id_pedido = %s
-        """, (id_pedido,))
-        
-        detalles = cursor.fetchall()
-        cursor.close()
-        conexion.close()
-        return detalles
+        """
+        return execute_query(query, params=(id_pedido,), fetch_all=True)

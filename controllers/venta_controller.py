@@ -1,15 +1,34 @@
-import mysql.connector
 from models import Venta, DetalleVenta
-from utils.database import get_connection
+from utils.database import get_connection, execute_query, close_connection
 from datetime import datetime
 
 class VentaController:
+    """
+    Controlador para la gestión de ventas, incluyendo el registro transaccional 
+    de comprobantes, descuento de stock en tiempo real y estadísticas diarias.
+    """
+
     @staticmethod
     def registrar_venta(venta):
-        conexion = get_connection()
-        cursor = conexion.cursor()
+        """
+        Registra una nueva venta de forma transaccional (ACID). Inserta la cabecera,
+        los detalles, descuenta el inventario físico y genera el historial de movimientos.
+        
+        Args:
+            venta (Venta): Objeto que contiene los datos de la venta y sus detalles.
+            
+        Returns:
+            Venta: El objeto venta actualizado con su ID generado por la base de datos.
+            
+        Raises:
+            ValueError: Si se intenta vender más stock del disponible.
+        """
+        conexion = None
+        cursor = None
         
         try:
+            conexion = get_connection()
+            cursor = conexion.cursor()
             conexion.start_transaction()
             
             subtotal = venta.subtotal
@@ -31,10 +50,18 @@ class VentaController:
                 """, (venta.id_venta, detalle.id_producto, detalle.cantidad,
                       detalle.precio_unitario, detalle.subtotal))
                 
-                cursor.execute("SELECT stock_actual FROM productos WHERE id_producto = %s", (detalle.id_producto,))
-                stock_actual = cursor.fetchone()[0]
+                cursor.execute("SELECT stock_actual FROM productos WHERE id_producto = %s FOR UPDATE", (detalle.id_producto,))
+                resultado_stock = cursor.fetchone()
+                
+                if not resultado_stock:
+                    raise ValueError(f"Producto con ID {detalle.id_producto} no encontrado.")
+                    
+                stock_actual = resultado_stock[0]
                 stock_nuevo = stock_actual - detalle.cantidad
                 
+                if stock_nuevo < 0:
+                    raise ValueError(f"Stock insuficiente para descontar {detalle.cantidad} unidades.")
+
                 cursor.execute("""
                     UPDATE productos 
                     SET stock_actual = %s 
@@ -49,23 +76,26 @@ class VentaController:
                 """, (detalle.id_producto, -detalle.cantidad, stock_actual, stock_nuevo, venta.id_venta, venta.usuario))
             
             conexion.commit()
-            print(f" Venta {venta.numero_factura} registrada - Total: ${total:.2f}")
+            print(f"✅ Venta {venta.numero_factura} registrada - Total: ${total:.2f}")
             return venta
             
         except Exception as e:
-            conexion.rollback()
-            print(f" Error: {e}")
+            if conexion:
+                conexion.rollback()
+            print(f"❌ Error al registrar venta: {e}")
             raise e
         finally:
-            cursor.close()
-            conexion.close()
+            close_connection(conexion, cursor)
     
     @staticmethod
     def get_ventas_hoy():
-        conexion = get_connection()
-        cursor = conexion.cursor(dictionary=True)
+        """
+        Recupera el listado de todas las ventas concretadas en la fecha actual.
         
-        cursor.execute("""
+        Returns:
+            list: Lista de diccionarios con la cabecera de la venta y la cantidad de ítems.
+        """
+        query = """
             SELECT v.*, 
                    COUNT(dv.id_detalle) as cantidad_productos
             FROM ventas v
@@ -73,19 +103,18 @@ class VentaController:
             WHERE DATE(v.fecha_venta) = CURDATE()
             GROUP BY v.id_venta
             ORDER BY v.fecha_venta DESC
-        """)
-        
-        ventas = cursor.fetchall()
-        cursor.close()
-        conexion.close()
-        return ventas
+        """
+        return execute_query(query, fetch_all=True)
     
     @staticmethod
     def get_resumen_dia():
-        conexion = get_connection()
-        cursor = conexion.cursor(dictionary=True)
+        """
+        Calcula las estadísticas clave de ingresos de la jornada actual.
         
-        cursor.execute("""
+        Returns:
+            dict: Diccionario conteniendo 'total_ventas', 'monto_total' y 'promedio_venta'.
+        """
+        query = """
             SELECT 
                 COALESCE(COUNT(*), 0) as total_ventas,
                 COALESCE(SUM(total), 0) as monto_total,
@@ -93,12 +122,10 @@ class VentaController:
             FROM ventas
             WHERE DATE(fecha_venta) = CURDATE()
             AND id_estado = 2
-        """)
+        """
+        resultado = execute_query(query, fetch_one=True)
         
-        resultado = cursor.fetchone()
-        cursor.close()
-        conexion.close()
-        
-        if not resultado or resultado['total_ventas'] is None:
+        if not resultado or resultado['total_ventas'] == 0:
             return {'total_ventas': 0, 'monto_total': 0, 'promedio_venta': 0}
+        
         return resultado

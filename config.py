@@ -9,11 +9,12 @@ Versión: 2.0.0
 DB_CONFIG = {
     'host': 'localhost',
     'user': 'root',
-    'password': 'Arcangeles369',
+    'password': 'root',
     'database': 'control_stock',
     'port': 3306,
     'charset': 'utf8mb4',
     'use_pure': True,
+    #'collation': 'utf8mb4_0900_ai_ci',
     'autocommit': False,
     'pool_name': 'mypool',
     'pool_size': 5

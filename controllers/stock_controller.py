@@ -1,6 +1,6 @@
 import mysql.connector
 from models import Producto, Categoria, Proveedor
-from utils.database import get_connection
+from utils.database import get_connection, execute_query, close_connection
 
 class StockController:
     """Controlador profesional para gestión de stock"""
@@ -8,75 +8,57 @@ class StockController:
     @staticmethod
     def get_all_productos():
         """Obtiene todos los productos activos con sus relaciones"""
-        conexion = get_connection()
-        cursor = conexion.cursor(dictionary=True)
         
-        cursor.execute("""
+        query = """
             SELECT p.*, c.nombre as categoria_nombre, pr.nombre as proveedor_nombre
             FROM productos p
             LEFT JOIN categorias c ON p.id_categoria = c.id_categoria
             LEFT JOIN proveedores pr ON p.id_proveedor = pr.id_proveedor
             WHERE p.activo = TRUE
             ORDER BY p.nombre
-        """)
+        """
+        rows = execute_query(query, fetch_all=True)
         
         productos = []
-        for row in cursor.fetchall():
-            producto = Producto(
-                id_producto=row['id_producto'],
-                codigo=row['codigo'],
-                nombre=row['nombre'],
-                descripcion=row['descripcion'],
-                id_categoria=row['id_categoria'],
-                id_proveedor=row['id_proveedor'],
-                precio_compra=row['precio_compra'],
-                precio_venta=row['precio_venta'],
-                stock_actual=row['stock_actual'],
-                stock_minimo=row['stock_minimo'],
-                stock_maximo=row['stock_maximo'],
-                ubicacion=row['ubicacion'],
-                unidad_medida=row['unidad_medida'],
-                activo=row['activo']
-            )
-            productos.append(producto)
-        
-        cursor.close()
-        conexion.close()
+        if rows:
+            for row in rows:
+                producto = Producto(
+                    id_producto=row['id_producto'],
+                    codigo=row['codigo'],
+                    nombre=row['nombre'],
+                    descripcion=row['descripcion'],
+                    id_categoria=row['id_categoria'],
+                    id_proveedor=row['id_proveedor'],
+                    precio_compra=row['precio_compra'],
+                    precio_venta=row['precio_venta'],
+                    stock_actual=row['stock_actual'],
+                    stock_minimo=row['stock_minimo'],
+                    stock_maximo=row['stock_maximo'],
+                    ubicacion=row['ubicacion'],
+                    unidad_medida=row['unidad_medida'],
+                    activo=row['activo']
+                )
+                productos.append(producto)
         return productos
     
     @staticmethod
     def get_productos_con_alerta():
         """Obtiene productos con stock crítico (bajo o sin stock)"""
-        conexion = get_connection()
-        cursor = conexion.cursor(dictionary=True)
-        
-        cursor.execute("""
+        query = """
             SELECT * FROM vw_stock_alertas
-            WHERE estado_stock != 'NORMAL'
+            WHERE stock_actual <= stock_minimo
             ORDER BY 
-                CASE estado_stock
-                    WHEN 'SIN STOCK' THEN 1
-                    WHEN 'STOCK BAJO' THEN 2
-                END,
-                stock_actual
-        """)
-        
-        resultados = cursor.fetchall()
-        cursor.close()
-        conexion.close()
-        return resultados
+                (stock_actual <= 0) DESC, 
+                stock_actual ASC
+        """
+        return execute_query(query, fetch_all=True)
     
     @staticmethod
     def get_producto_by_id(id_producto):
         """Obtiene un producto específico por su ID"""
-        conexion = get_connection()
-        cursor = conexion.cursor(dictionary=True)
         
-        cursor.execute("SELECT * FROM productos WHERE id_producto = %s", (id_producto,))
-        row = cursor.fetchone()
-        
-        cursor.close()
-        conexion.close()
+        query = "SELECT * FROM productos WHERE id_producto = %s"
+        row = execute_query(query, params=(id_producto,), fetch_one=True)
         
         if row:
             return Producto(
@@ -121,11 +103,11 @@ class StockController:
             
             return producto
         except Exception as e:
-            conexion.rollback()
+            if conexion:
+                conexion.rollback()
             raise e
         finally:
-            cursor.close()
-            conexion.close()
+            close_connection(conexion, cursor)
     
     @staticmethod
     def actualizar_stock(id_producto, cantidad, tipo_movimiento, usuario, referencia=None):
@@ -147,10 +129,12 @@ class StockController:
         print(f"   Usuario: {usuario}")
         # ===========================
         
-        conexion = get_connection()
-        cursor = conexion.cursor()
+        conexion = None
+        cursor = None
         
         try:
+            conexion = get_connection()
+            cursor = conexion.cursor()
             conexion.start_transaction()
             
             # Obtener stock actual con bloqueo para actualización
@@ -197,44 +181,29 @@ class StockController:
             return stock_nuevo
             
         except Exception as e:
-            conexion.rollback()
+            if conexion:
+                conexion.rollback()
             print(f"❌ Error al actualizar stock: {e}")
             raise e
         finally:
-            cursor.close()
-            conexion.close()
+            close_connection(conexion, cursor)
     
     @staticmethod
     def get_categorias():
         """Obtiene todas las categorías activas"""
-        conexion = get_connection()
-        cursor = conexion.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM categorias WHERE activo = TRUE ORDER BY nombre")
-        rows = cursor.fetchall()
-        cursor.close()
-        conexion.close()
-        categorias = [Categoria.from_dict(row) for row in rows]
-        return categorias
+        rows = execute_query("SELECT * FROM categorias WHERE activo = TRUE ORDER BY nombre", fetch_all=True)
+        return [Categoria.from_dict(row) for row in rows] if rows else []
     
     @staticmethod
     def get_proveedores():
         """Obtiene todos los proveedores activos"""
-        conexion = get_connection()
-        cursor = conexion.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM proveedores WHERE activo = TRUE ORDER BY nombre")
-        rows = cursor.fetchall()
-        cursor.close()
-        conexion.close()
-        proveedores = [Proveedor.from_dict(row) for row in rows]
-        return proveedores
+        rows = execute_query("SELECT * FROM proveedores WHERE activo = TRUE ORDER BY nombre", fetch_all=True)
+        return [Proveedor.from_dict(row) for row in rows] if rows else []
     
     @staticmethod
     def get_movimientos_producto(id_producto, limite=50):
         """Obtiene el historial de movimientos de un producto específico"""
-        conexion = get_connection()
-        cursor = conexion.cursor(dictionary=True)
-        
-        cursor.execute("""
+        query = """
             SELECT m.*, tm.nombre as tipo_movimiento,
                    CASE 
                        WHEN m.cantidad > 0 THEN 'ENTRADA'
@@ -245,9 +214,5 @@ class StockController:
             WHERE m.id_producto = %s
             ORDER BY m.fecha DESC
             LIMIT %s
-        """, (id_producto, limite))
-        
-        resultados = cursor.fetchall()
-        cursor.close()
-        conexion.close()
-        return resultados
+        """
+        return execute_query(query, params=(id_producto, limite), fetch_all=True)

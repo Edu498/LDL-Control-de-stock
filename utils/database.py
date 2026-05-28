@@ -4,6 +4,7 @@ Módulo de conexión a Base de Datos
 Sistema de Control de Stock
 """
 
+from controllers import stock_controller
 import mysql.connector
 from mysql.connector import Error, pooling
 from config import DB_CONFIG
@@ -87,6 +88,8 @@ def execute_query(query, params=None, fetch_one=False, fetch_all=False, commit=F
     """Ejecuta una consulta SQL de manera segura"""
     conn = None
     cursor = None
+    resultado = None
+
     try:
         conn = get_connection()
         cursor = conn.cursor(dictionary=True)
@@ -96,18 +99,27 @@ def execute_query(query, params=None, fetch_one=False, fetch_all=False, commit=F
             conn.commit()
         
         if fetch_one:
-            return cursor.fetchone()
+            resultado = cursor.fetchone()
         elif fetch_all:
-            return cursor.fetchall()
+            resultado = cursor.fetchall()
         else:
-            return cursor
+            resultado = cursor
+
+        return resultado
         
     except Error as e:
         if conn:
             conn.rollback()
         raise e
     finally:
-        if cursor and not fetch_one and not fetch_all:
-            cursor.close()
-        if conn and not fetch_one and not fetch_all:
-            conn.close()
+        if not(fetch_one is False and fetch_all is False and not commit):
+            if cursor:
+                try:
+                    cursor.close()
+                except:
+                    pass
+            if conn:
+                try:
+                    conn.close()
+                except:
+                    pass
