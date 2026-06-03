@@ -4,7 +4,6 @@ Módulo de conexión a Base de Datos
 Sistema de Control de Stock
 """
 
-from controllers import stock_controller
 import mysql.connector
 from mysql.connector import Error, pooling
 from config import DB_CONFIG

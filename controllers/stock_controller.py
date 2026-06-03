@@ -46,7 +46,7 @@ class StockController:
         """Obtiene productos con stock crítico (bajo o sin stock)"""
         query = """
             SELECT * FROM vw_stock_alertas
-            WHERE stock_actual <= stock_minimo
+            WHERE stock_actual < stock_minimo
             ORDER BY 
                 (stock_actual <= 0) DESC, 
                 stock_actual ASC

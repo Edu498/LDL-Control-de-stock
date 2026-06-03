@@ -124,62 +124,82 @@ class Alertas:
         respuesta = messagebox.askyesno(
             "Generar Pedido",
             "¿Desea generar un pedido automático con los productos faltantes?\n\n"
-            "Esto creará un pedido pendiente para su revisión."
+            "Esto creará un pedido pendiente para su revisión.",
+            parent=parent
         )
         if respuesta:
-            messagebox.showinfo("Pedido Sugerido", 
-                               "Se ha generado una sugerencia de pedido.\n"
-                               "Revise la sección 'Pedidos' para confirmar.")
+            try:
+                from controllers import PedidoController
+                from utils.eventos import Eventos, EVENTO_PEDIDO_CREADO
+                
+                pedidos = PedidoController.generar_pedido_automatico()
+                if pedidos and len(pedidos) > 0:
+                    messagebox.showinfo("Pedido Generado", 
+                                       f"✅ Se han generado {len(pedidos)} pedidos automáticos de reposición.\n"
+                                       "Revise la sección 'Pedidos' para confirmar.",
+                                       parent=parent)
+                    Eventos.notificar(EVENTO_PEDIDO_CREADO)
+                else:
+                    messagebox.showwarning("Sin Pedidos",
+                                           "No hay productos con stock bajo o sin proveedor asignado para generar pedidos.",
+                                           parent=parent)
+            except Exception as e:
+                messagebox.showerror("Error", f"Error al generar pedido automático: {str(e)}", parent=parent)
         parent.destroy()
     
     @staticmethod
-    def mostrar_mensaje_exito(mensaje, titulo="Éxito"):
+    def mostrar_mensaje_exito(mensaje, titulo="Éxito", parent=None):
         """
         Muestra mensaje de éxito
         Args:
             mensaje: Mensaje a mostrar
             titulo: Título de la alerta
+            parent: Ventana padre
         """
-        messagebox.showinfo(titulo, mensaje)
+        messagebox.showinfo(titulo, mensaje, parent=parent)
     
     @staticmethod
-    def mostrar_mensaje_error(mensaje, titulo="Error"):
+    def mostrar_mensaje_error(mensaje, titulo="Error", parent=None):
         """
         Muestra mensaje de error
         Args:
             mensaje: Mensaje a mostrar
             titulo: Título de la alerta
+            parent: Ventana padre
         """
-        messagebox.showerror(titulo, mensaje)
+        messagebox.showerror(titulo, mensaje, parent=parent)
     
     @staticmethod
-    def mostrar_mensaje_advertencia(mensaje, titulo="Advertencia"):
+    def mostrar_mensaje_advertencia(mensaje, titulo="Advertencia", parent=None):
         """
         Muestra mensaje de advertencia
         Args:
             mensaje: Mensaje a mostrar
             titulo: Título de la alerta
+            parent: Ventana padre
         """
-        messagebox.showwarning(titulo, mensaje)
+        messagebox.showwarning(titulo, mensaje, parent=parent)
     
     @staticmethod
-    def mostrar_mensaje_informacion(mensaje, titulo="Información"):
+    def mostrar_mensaje_informacion(mensaje, titulo="Información", parent=None):
         """
         Muestra mensaje informativo
         Args:
             mensaje: Mensaje a mostrar
             titulo: Título de la alerta
+            parent: Ventana padre
         """
-        messagebox.showinfo(titulo, mensaje)
+        messagebox.showinfo(titulo, mensaje, parent=parent)
     
     @staticmethod
-    def preguntar_si(mensaje, titulo="Confirmar"):
+    def preguntar_si(mensaje, titulo="Confirmar", parent=None):
         """
         Pregunta al usuario si/no
         Args:
             mensaje: Mensaje a mostrar
             titulo: Título de la alerta
+            parent: Ventana padre
         Returns:
             bool: True si el usuario responde sí, False si responde no
         """
-        return messagebox.askyesno(titulo, mensaje)
+        return messagebox.askyesno(titulo, mensaje, parent=parent)

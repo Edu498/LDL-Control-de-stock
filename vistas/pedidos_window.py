@@ -3,7 +3,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from controllers import StockController, PedidoController
 from utils import Alertas, formatear_precio, formatear_fecha
-from utils.eventos import Eventos, EVENTO_PEDIDO_CREADO
+from utils.eventos import Eventos, EVENTO_PEDIDO_CREADO, EVENTO_STOCK_ACTUALIZADO
 
 class PedidosWindow:
     def __init__(self, parent, usuario):
@@ -26,6 +26,7 @@ class PedidosWindow:
         self.productos_bajo_stock = StockController.get_productos_con_alerta()
         self.pedidos = PedidoController.get_pedidos_pendientes()
         self.proveedores = StockController.get_proveedores()
+        self.historial_pedidos = PedidoController.get_historial_pedidos()
     
     def crear_widgets(self):
         # Título
@@ -131,6 +132,9 @@ class PedidosWindow:
         scrollbar.config(command=self.tabla_pedidos.yview)
         self.tabla_pedidos.pack(fill=tk.BOTH, expand=True)
         
+        # Vincular evento de clic
+        self.tabla_pedidos.bind('<ButtonRelease-1>', self.on_click_tabla_pedidos)
+        
         self.actualizar_tabla_pedidos()
     
     def actualizar_tabla_pedidos(self):
@@ -138,7 +142,7 @@ class PedidosWindow:
             self.tabla_pedidos.delete(item)
         
         for p in self.pedidos:
-            self.tabla_pedidos.insert('', tk.END, values=(
+            self.tabla_pedidos.insert('', tk.END, iid=p.get('id_pedido'), values=(
                 p.get('numero_pedido', 'N/A'),
                 p.get('proveedor_nombre', '-'),
                 formatear_fecha(p.get('fecha_pedido', '')),
@@ -146,6 +150,26 @@ class PedidosWindow:
                 'Pendiente' if p.get('id_estado') == 1 else 'Enviado',
                 '📦 Recibir'
             ))
+            
+    def on_click_tabla_pedidos(self, event):
+        region = self.tabla_pedidos.identify_region(event.x, event.y)
+        if region == "cell":
+            column = self.tabla_pedidos.identify_column(event.x)
+            if column == '#6':  # Columna Acciones
+                id_pedido = self.tabla_pedidos.identify_row(event.y)
+                if id_pedido:
+                    pedido = next((p for p in self.pedidos if str(p.get('id_pedido')) == str(id_pedido)), None)
+                    if pedido:
+                        self.recibir_pedido(pedido)
+                        
+    def recibir_pedido(self, pedido):
+        RecepcionPedidoWindow(self.window, pedido, self.refrescar_datos_locales, self.usuario)
+        
+    def refrescar_datos_locales(self):
+        self.cargar_datos()
+        self.actualizar_tabla_pedidos()
+        self.actualizar_tabla_stock_bajo()
+        self.actualizar_tabla_historial()
     
     def crear_tabla_historial(self):
         frame_tabla = tk.Frame(self.frame_historial)
@@ -164,39 +188,87 @@ class PedidosWindow:
         
         scrollbar.config(command=self.tabla_historial.yview)
         self.tabla_historial.pack(fill=tk.BOTH, expand=True)
+        
+        self.actualizar_tabla_historial()
+        
+    def actualizar_tabla_historial(self):
+        for item in self.tabla_historial.get_children():
+            self.tabla_historial.delete(item)
+            
+        for p in self.historial_pedidos:
+            fecha_entrega_raw = p.get('fecha_entrega_real')
+            fecha_entrega = formatear_fecha(fecha_entrega_raw) if fecha_entrega_raw else 'Pendiente'
+            
+            self.tabla_historial.insert('', tk.END, values=(
+                p.get('numero_pedido', 'N/A'),
+                p.get('proveedor_nombre', '-'),
+                formatear_fecha(p.get('fecha_pedido', '')),
+                fecha_entrega,
+                f"${p.get('total', 0):,.2f}",
+                p.get('estado_nombre', '-')
+            ))
     
     def generar_pedido_automatico(self):
-        if Alertas.preguntar_si("¿Generar pedido automático para todos los productos con stock bajo?"):
-            try:
-                pedidos = PedidoController.generar_pedido_automatico()
-                if pedidos and len(pedidos) > 0:
-                    Alertas.mostrar_mensaje_exito(f"✅ Se generaron {len(pedidos)} pedidos automáticos")
-                    self.cargar_datos()
-                    self.actualizar_tabla_pedidos()
-                    self.actualizar_tabla_stock_bajo()
-                    # Notificar evento
-                    Eventos.notificar(EVENTO_PEDIDO_CREADO)
-                else:
-                    Alertas.mostrar_mensaje_advertencia(
-                        "No hay productos con stock bajo o sin proveedor asignado.\n\n"
-                        "Para generar pedidos automáticos, asegúrese que:\n"
-                        "1. Los productos tengan un proveedor asignado\n"
-                        "2. El stock sea menor o igual al mínimo"
-                    )
-            except Exception as e:
-                Alertas.mostrar_mensaje_error(f"Error: {str(e)}")
+        productos_a_pedir = []
+        productos_sin_proveedor = []
+        for p in self.productos_bajo_stock:
+            if p.get('proveedor') and p.get('proveedor') != 'Sin proveedor':
+                productos_a_pedir.append(p)
+            else:
+                productos_sin_proveedor.append(p.get('nombre'))
+                
+        if not productos_a_pedir:
+            Alertas.mostrar_mensaje_advertencia(
+                "No hay productos con stock bajo que tengan un proveedor asignado.",
+                parent=self.window
+            )
+            return
+            
+        PropuestaPedidoWindow(self.window, productos_a_pedir, self.refrescar_datos_locales, self.usuario)
     
     def generar_pedido_seleccionados(self):
         seleccion = self.tabla_stock_bajo.selection()
         if not seleccion:
-            Alertas.mostrar_mensaje_advertencia("Seleccione al menos un producto")
+            Alertas.mostrar_mensaje_advertencia("Seleccione al menos un producto", parent=self.window)
             return
         
-        Alertas.mostrar_mensaje_informacion("Funcionalidad en desarrollo", 
-                                            "Próximamente podrá generar pedidos personalizados")
+        # Obtener los códigos de los productos seleccionados
+        codigos_seleccionados = []
+        for item in seleccion:
+            valores = self.tabla_stock_bajo.item(item, 'values')
+            if valores:
+                codigos_seleccionados.append(valores[0])
+                
+        # Encontrar los ids de productos correspondientes
+        productos_a_pedir = []
+        productos_sin_proveedor = []
+        for p in self.productos_bajo_stock:
+            if p.get('codigo') in codigos_seleccionados:
+                if p.get('proveedor') and p.get('proveedor') != 'Sin proveedor':
+                    productos_a_pedir.append(p)
+                else:
+                    productos_sin_proveedor.append(p.get('nombre'))
+                    
+        if productos_sin_proveedor:
+            nombres_sin_prov = ", ".join(productos_sin_proveedor)
+            if not productos_a_pedir:
+                Alertas.mostrar_mensaje_advertencia(
+                    f"No se puede generar el pedido para los siguientes productos porque no tienen proveedor asignado:\n\n{nombres_sin_prov}",
+                    parent=self.window
+                )
+                return
+            else:
+                if not Alertas.preguntar_si(
+                    f"Los siguientes productos no tienen proveedor asignado y no serán incluidos:\n\n{nombres_sin_prov}\n\n¿Desea continuar con el resto de los productos seleccionados?",
+                    parent=self.window
+                ):
+                    return
+                    
+        # Abrir la ventana de confirmación de cantidades
+        PropuestaPedidoWindow(self.window, productos_a_pedir, self.refrescar_datos_locales, self.usuario)
     
     def nuevo_pedido(self):
-        NuevoPedidoWindow(self.window, self.usuario, self.cargar_datos)
+        NuevoPedidoWindow(self.window, self.usuario, self.refrescar_datos_locales)
 
 
 class NuevoPedidoWindow:
@@ -462,3 +534,279 @@ class NuevoPedidoWindow:
                     
         except Exception as e:
             Alertas.mostrar_mensaje_error(f"Error: {str(e)}")
+
+
+class RecepcionPedidoWindow:
+    def __init__(self, parent, pedido, callback_refresh, usuario):
+        self.parent = parent
+        self.pedido = pedido
+        self.callback_refresh = callback_refresh
+        self.usuario = usuario
+        self.entries = {}
+        
+        self.window = tk.Toplevel(parent)
+        self.window.title(f"📦 Recepción de Pedido - N° {pedido.get('numero_pedido')}")
+        self.window.geometry("600x500")
+        self.window.configure(bg='#F0F0F0')
+        
+        self.cargar_datos()
+        self.crear_widgets()
+        
+        self.window.transient(parent)
+        self.window.grab_set()
+        self.window.focus_force()
+        
+    def cargar_datos(self):
+        self.detalles = PedidoController.get_detalles_pedido(self.pedido.get('id_pedido'))
+        
+    def crear_widgets(self):
+        # Título
+        tk.Label(self.window, text="📦 REGISTRAR INGRESO DE STOCK", 
+                 font=("Arial", 14, "bold"), bg='#F0F0F0').pack(pady=10)
+                 
+        # Resumen del pedido
+        frame_resumen = tk.Frame(self.window, bg='white', relief=tk.RAISED, bd=1)
+        frame_resumen.pack(fill=tk.X, padx=15, pady=5)
+        
+        tk.Label(frame_resumen, text=f"Pedido: {self.pedido.get('numero_pedido')}", bg='white', font=("Arial", 10, "bold")).grid(row=0, column=0, padx=10, pady=5, sticky=tk.W)
+        tk.Label(frame_resumen, text=f"Proveedor: {self.pedido.get('proveedor_nombre')}", bg='white').grid(row=0, column=1, padx=10, pady=5, sticky=tk.W)
+        
+        # Scrollable area for products
+        frame_productos = tk.Frame(self.window, bg='#F0F0F0')
+        frame_productos.pack(fill=tk.BOTH, expand=True, padx=15, pady=10)
+        
+        # Canvas + Scrollbar
+        canvas = tk.Canvas(frame_productos, bg='#F0F0F0', highlightthickness=0)
+        scrollbar = tk.Scrollbar(frame_productos, orient="vertical", command=canvas.yview)
+        scrollable_frame = tk.Frame(canvas, bg='#F0F0F0')
+        
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+        
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+        
+        # Headers in scrollable frame
+        frame_headers = tk.Frame(scrollable_frame, bg='#E0E0E0', height=25)
+        frame_headers.pack(fill=tk.X, pady=5)
+        tk.Label(frame_headers, text="Producto", bg='#E0E0E0', font=("Arial", 9, "bold"), width=35, anchor=tk.W).pack(side=tk.LEFT, padx=5)
+        tk.Label(frame_headers, text="Cant. Pedida", bg='#E0E0E0', font=("Arial", 9, "bold"), width=12).pack(side=tk.LEFT, padx=5)
+        tk.Label(frame_headers, text="Cant. Recibida", bg='#E0E0E0', font=("Arial", 9, "bold"), width=15).pack(side=tk.LEFT, padx=5)
+        
+        # Rows
+        for item in self.detalles:
+            id_prod = item.get('id_producto')
+            nombre = item.get('producto_nombre', '')
+            codigo = item.get('codigo', '')
+            cantidad_pedida = item.get('cantidad', 0)
+            
+            row = tk.Frame(scrollable_frame, bg='white', relief=tk.GROOVE, bd=1)
+            row.pack(fill=tk.X, pady=2)
+            
+            # Nombre prod
+            tk.Label(row, text=f"{codigo} - {nombre[:35]}", bg='white', anchor=tk.W, width=35).pack(side=tk.LEFT, padx=5, pady=5)
+            # Cantidad pedida
+            tk.Label(row, text=str(cantidad_pedida), bg='white', width=12).pack(side=tk.LEFT, padx=5, pady=5)
+            
+            # Entry for cantidad recibida
+            entry_var = tk.StringVar(value=str(cantidad_pedida))
+            entry = tk.Entry(row, textvariable=entry_var, width=10, justify=tk.CENTER)
+            entry.pack(side=tk.LEFT, padx=15, pady=5)
+            
+            self.entries[id_prod] = entry
+            
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+        
+        # Botones
+        frame_botones = tk.Frame(self.window, bg='#F0F0F0')
+        frame_botones.pack(fill=tk.X, padx=15, pady=15)
+        
+        tk.Button(frame_botones, text="💾 Confirmar Recepción", command=self.confirmar_recepcion,
+                  bg='#28A745', fg='white', font=("Arial", 11, "bold"), padx=20).pack(side=tk.RIGHT, padx=5)
+                  
+        tk.Button(frame_botones, text="Cancelar", command=self.window.destroy,
+                  bg='#6C757D', fg='white', padx=15).pack(side=tk.RIGHT, padx=5)
+                  
+    def confirmar_recepcion(self):
+        cantidades_recibidas = {}
+        for id_prod, entry in self.entries.items():
+            val = entry.get().strip()
+            try:
+                cant = int(val)
+                if cant < 0:
+                    raise ValueError
+                cantidades_recibidas[id_prod] = cant
+            except ValueError:
+                # Find product name
+                prod_name = next((p.get('producto_nombre') for p in self.detalles if p.get('id_producto') == id_prod), "Producto")
+                Alertas.mostrar_mensaje_advertencia(f"Por favor ingrese una cantidad válida (número entero >= 0) para:\n{prod_name}", parent=self.window)
+                return
+                
+        # Confirm confirmation dialog
+        if Alertas.preguntar_si("¿Desea registrar la recepción del pedido con las cantidades indicadas?\n\nEl stock de los productos aumentará en base a las cantidades ingresadas.", parent=self.window):
+            try:
+                # Obtener usuario de manera segura
+                usuario_str = "admin"
+                if self.usuario:
+                    if isinstance(self.usuario, dict):
+                        usuario_str = self.usuario.get('nombre_usuario', 'admin')
+                    elif hasattr(self.usuario, 'nombre_usuario'):
+                        usuario_str = self.usuario.nombre_usuario
+                    else:
+                        usuario_str = str(self.usuario)
+                        
+                exito = PedidoController.recibir_pedido(self.pedido.get('id_pedido'), usuario_str, cantidades_recibidas)
+                if exito:
+                    Alertas.mostrar_mensaje_exito(f"✅ Pedido N° {self.pedido.get('numero_pedido')} recibido y stock actualizado", parent=self.parent)
+                    # Notificar eventos
+                    from utils.eventos import Eventos, EVENTO_PEDIDO_CREADO, EVENTO_STOCK_ACTUALIZADO
+                    Eventos.notificar(EVENTO_PEDIDO_CREADO)
+                    Eventos.notificar(EVENTO_STOCK_ACTUALIZADO)
+                    
+                    if self.callback_refresh:
+                        self.callback_refresh()
+                        
+                    self.window.destroy()
+                else:
+                    Alertas.mostrar_mensaje_error("No se pudo registrar la recepción del pedido", parent=self.window)
+            except Exception as e:
+                Alertas.mostrar_mensaje_error(f"Error al registrar recepción: {str(e)}", parent=self.window)
+
+
+class PropuestaPedidoWindow:
+    def __init__(self, parent, productos, callback_refresh, usuario):
+        self.parent = parent
+        self.productos = productos
+        self.callback_refresh = callback_refresh
+        self.usuario = usuario
+        self.entries = {}
+        
+        self.window = tk.Toplevel(parent)
+        self.window.title("📝 Confirmar Cantidades del Pedido")
+        self.window.geometry("700x500")
+        self.window.configure(bg='#F0F0F0')
+        
+        self.crear_widgets()
+        
+        self.window.transient(parent)
+        self.window.grab_set()
+        self.window.focus_force()
+        
+    def crear_widgets(self):
+        # Título
+        tk.Label(self.window, text="📝 REVISAR CANTIDADES A PEDIR", 
+                 font=("Arial", 14, "bold"), bg='#F0F0F0').pack(pady=10)
+                 
+        # Instrucciones
+        tk.Label(self.window, text="Indique las cantidades a solicitar a los proveedores.\n"
+                                   "Los productos se agruparán automáticamente por proveedor en distintos pedidos.", 
+                 font=("Arial", 9), bg='#F0F0F0', justify=tk.LEFT).pack(anchor=tk.W, padx=15, pady=5)
+                 
+        # Scrollable area for products
+        frame_productos = tk.Frame(self.window, bg='#F0F0F0')
+        frame_productos.pack(fill=tk.BOTH, expand=True, padx=15, pady=10)
+        
+        canvas = tk.Canvas(frame_productos, bg='#F0F0F0', highlightthickness=0)
+        scrollbar = tk.Scrollbar(frame_productos, orient="vertical", command=canvas.yview)
+        scrollable_frame = tk.Frame(canvas, bg='#F0F0F0')
+        
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+        
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+        
+        # Headers
+        frame_headers = tk.Frame(scrollable_frame, bg='#E0E0E0', height=25)
+        frame_headers.pack(fill=tk.X, pady=5)
+        tk.Label(frame_headers, text="Producto", bg='#E0E0E0', font=("Arial", 9, "bold"), width=30, anchor=tk.W).pack(side=tk.LEFT, padx=5)
+        tk.Label(frame_headers, text="Proveedor", bg='#E0E0E0', font=("Arial", 9, "bold"), width=20, anchor=tk.W).pack(side=tk.LEFT, padx=5)
+        tk.Label(frame_headers, text="Stock / Min", bg='#E0E0E0', font=("Arial", 9, "bold"), width=10).pack(side=tk.LEFT, padx=5)
+        tk.Label(frame_headers, text="Cantidad a Pedir", bg='#E0E0E0', font=("Arial", 9, "bold"), width=15).pack(side=tk.LEFT, padx=5)
+        
+        # Rows
+        for item in self.productos:
+            id_prod = item.get('id_producto')
+            nombre = item.get('nombre', '')
+            codigo = item.get('codigo', '')
+            proveedor = item.get('proveedor', 'Sin Proveedor')
+            stock_actual = item.get('stock_actual', 0)
+            stock_minimo = item.get('stock_minimo', 0)
+            
+            # Cantidad sugerida por defecto: max(5, stock_minimo - stock_actual)
+            cantidad_sugerida = max(5, stock_minimo - stock_actual)
+            
+            row = tk.Frame(scrollable_frame, bg='white', relief=tk.GROOVE, bd=1)
+            row.pack(fill=tk.X, pady=2)
+            
+            # Nombre prod
+            tk.Label(row, text=f"{codigo} - {nombre[:28]}", bg='white', anchor=tk.W, width=30).pack(side=tk.LEFT, padx=5, pady=5)
+            # Proveedor
+            tk.Label(row, text=proveedor[:18], bg='white', anchor=tk.W, width=20).pack(side=tk.LEFT, padx=5, pady=5)
+            # Stock / Min
+            tk.Label(row, text=f"{stock_actual} / {stock_minimo}", bg='white', width=10).pack(side=tk.LEFT, padx=5, pady=5)
+            
+            # Entry variable for order quantity
+            entry_var = tk.StringVar(value=str(cantidad_sugerida))
+            entry = tk.Entry(row, textvariable=entry_var, width=10, justify=tk.CENTER)
+            entry.pack(side=tk.LEFT, padx=15, pady=5)
+            
+            self.entries[id_prod] = entry
+            
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+        
+        # Botones
+        frame_botones = tk.Frame(self.window, bg='#F0F0F0')
+        frame_botones.pack(fill=tk.X, padx=15, pady=15)
+        
+        tk.Button(frame_botones, text="💾 Generar Pedidos", command=self.generar_pedidos,
+                  bg='#28A745', fg='white', font=("Arial", 11, "bold"), padx=20).pack(side=tk.RIGHT, padx=5)
+                  
+        tk.Button(frame_botones, text="Cancelar", command=self.window.destroy,
+                  bg='#6C757D', fg='white', padx=15).pack(side=tk.RIGHT, padx=5)
+                  
+    def generar_pedidos(self):
+        cantidades_pedir = {}
+        for id_prod, entry in self.entries.items():
+            val = entry.get().strip()
+            try:
+                cant = int(val)
+                if cant < 0:
+                    raise ValueError
+                if cant > 0:
+                    cantidades_pedir[id_prod] = cant
+            except ValueError:
+                # Find product name
+                prod_name = next((p.get('nombre') for p in self.productos if p.get('id_producto') == id_prod), "Producto")
+                Alertas.mostrar_mensaje_advertencia(f"Por favor ingrese una cantidad de pedido válida (número entero >= 0) para:\n{prod_name}", parent=self.window)
+                return
+                
+        if not cantidades_pedir:
+            Alertas.mostrar_mensaje_advertencia("Debe especificar una cantidad mayor a 0 para al menos un producto.", parent=self.window)
+            return
+            
+        # Confirm confirmation dialog
+        if Alertas.preguntar_si("¿Desea generar los pedidos a proveedores con las cantidades ingresadas?\n\nLos productos se agruparán por proveedor.", parent=self.window):
+            try:
+                ids_a_pedir = list(cantidades_pedir.keys())
+                pedidos = PedidoController.generar_pedido_seleccionados(ids_a_pedir, cantidades_pedir)
+                if pedidos and len(pedidos) > 0:
+                    Alertas.mostrar_mensaje_exito(f"✅ Se han generado {len(pedidos)} pedidos con éxito", parent=self.parent)
+                    # Notificar evento
+                    from utils.eventos import Eventos, EVENTO_PEDIDO_CREADO
+                    Eventos.notificar(EVENTO_PEDIDO_CREADO)
+                    
+                    if self.callback_refresh:
+                        self.callback_refresh()
+                        
+                    self.window.destroy()
+                else:
+                    Alertas.mostrar_mensaje_error("No se pudieron generar los pedidos. Verifique que los productos seleccionados tengan un proveedor asignado.", parent=self.window)
+            except Exception as e:
+                Alertas.mostrar_mensaje_error(f"Error al generar pedidos: {str(e)}", parent=self.window)

@@ -164,7 +164,7 @@ def crear_base_datos():
         cursor.execute("""
         CREATE TABLE pedidos (
             id_pedido INT AUTO_INCREMENT PRIMARY KEY,
-            numero_pedido VARCHAR(20) UNIQUE,
+            numero_pedido VARCHAR(30) UNIQUE,
             id_proveedor INT NOT NULL,
             fecha_pedido TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             fecha_entrega_esperada DATE,
@@ -323,7 +323,7 @@ def crear_base_datos():
             p.stock_minimo,
             CASE 
                 WHEN p.stock_actual <= 0 THEN 'SIN STOCK'
-                WHEN p.stock_actual <= p.stock_minimo THEN 'STOCK BAJO'
+                WHEN p.stock_actual < p.stock_minimo THEN 'STOCK BAJO'
                 ELSE 'NORMAL'
             END AS estado_stock,
             GREATEST(0, p.stock_minimo - p.stock_actual) AS cantidad_recomendada,

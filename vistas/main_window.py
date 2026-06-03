@@ -12,7 +12,7 @@ from controllers.venta_controller import VentaController
 from controllers.pedido_controller import PedidoController
 from utils.alertas import Alertas
 from utils.helpers import formatear_precio, formatear_fecha
-from utils.eventos import Eventos, EVENTO_VENTA_REGISTRADA, EVENTO_STOCK_ACTUALIZADO
+from utils.eventos import Eventos, EVENTO_VENTA_REGISTRADA, EVENTO_STOCK_ACTUALIZADO, EVENTO_PEDIDO_CREADO
 
 class MainWindow:
     def __init__(self, usuario):
@@ -34,6 +34,7 @@ class MainWindow:
         # Suscribirse a eventos
         Eventos.suscribir(EVENTO_VENTA_REGISTRADA, self._actualizar_dashboard)
         Eventos.suscribir(EVENTO_STOCK_ACTUALIZADO, self._actualizar_dashboard)
+        Eventos.suscribir(EVENTO_PEDIDO_CREADO, self._actualizar_dashboard)
         
         # Iniciar auto-refresh
         self._iniciar_auto_refresh()
