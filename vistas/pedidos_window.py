@@ -6,21 +6,25 @@ from utils import Alertas, formatear_precio, formatear_fecha
 from utils.eventos import Eventos, EVENTO_PEDIDO_CREADO, EVENTO_STOCK_ACTUALIZADO
 
 class PedidosWindow:
-    def __init__(self, parent, usuario):
+    def __init__(self, parent, usuario, main_app=None):
         self.parent = parent
         self.usuario = usuario
+        self.main_app = main_app
         
-        self.window = tk.Toplevel(parent)
-        self.window.title("Gestión de Pedidos a Proveedores")
-        self.window.geometry("1100x600")
-        self.window.configure(bg='#F0F0F0')
+        if main_app:
+            self.window = tk.Frame(parent, bg='#F0F0F0')
+            self.window.pack(fill=tk.BOTH, expand=True)
+        else:
+            self.window = tk.Toplevel(parent)
+            self.window.title("Gestión de Pedidos a Proveedores")
+            self.window.geometry("1100x600")
+            self.window.configure(bg='#F0F0F0')
+            self.window.transient(parent.winfo_toplevel())
+            self.window.grab_set()
+            self.window.focus_force()
         
         self.cargar_datos()
         self.crear_widgets()
-        
-        self.window.transient(parent)
-        self.window.grab_set()
-        self.window.focus_force()
     
     def cargar_datos(self):
         self.productos_bajo_stock = StockController.get_productos_con_alerta()
@@ -46,6 +50,12 @@ class PedidosWindow:
                  command=self.nuevo_pedido,
                  bg='#007BFF', fg='white', font=("Arial", 10, "bold"),
                  padx=20).pack(side=tk.LEFT, padx=5)
+        
+        if self.main_app:
+            tk.Button(frame_botones, text="❌ Volver al Dashboard", 
+                     command=self.main_app._mostrar_dashboard,
+                     bg='#DC3545', fg='white', font=("Arial", 10, "bold"),
+                     padx=20).pack(side=tk.RIGHT, padx=5)
         
         # Notebook (pestañas)
         self.notebook = ttk.Notebook(self.window)
@@ -286,7 +296,7 @@ class NuevoPedidoWindow:
         self.cargar_datos()
         self.crear_widgets()
         
-        self.window.transient(parent)
+        self.window.transient(parent.winfo_toplevel())
         self.window.grab_set()
         self.window.focus_force()
     
@@ -552,7 +562,7 @@ class RecepcionPedidoWindow:
         self.cargar_datos()
         self.crear_widgets()
         
-        self.window.transient(parent)
+        self.window.transient(parent.winfo_toplevel())
         self.window.grab_set()
         self.window.focus_force()
         
@@ -691,7 +701,7 @@ class PropuestaPedidoWindow:
         
         self.crear_widgets()
         
-        self.window.transient(parent)
+        self.window.transient(parent.winfo_toplevel())
         self.window.grab_set()
         self.window.focus_force()
         

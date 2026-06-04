@@ -23,6 +23,17 @@ class Eventos:
         if evento not in cls._observadores:
             cls._observadores[evento] = []
         cls._observadores[evento].append(callback)
+        
+    @classmethod
+    def desuscribir(cls, evento, callback):
+        """
+        Desuscribe un callback de un evento
+        Args:
+            evento (str): Nombre del evento.
+            callback (function): Función a remover.
+        """
+        if evento in cls._observadores and callback in cls._observadores[evento]:
+            cls._observadores[evento].remove(callback)
     
     @classmethod
     def notificar(cls, evento, datos=None):
@@ -33,7 +44,24 @@ class Eventos:
             datos (any, optional): Datos adicionales a pasar a los callbacks.
         """
         if evento in cls._observadores:
+            observadores_activos = []
+            
             for callback in cls._observadores[evento]:
+                # Limpieza automática si el callback pertenece a un Widget destruido de Tkinter
+                if hasattr(callback, '__self__'):
+                    instancia = callback.__self__
+                    if hasattr(instancia, 'window'):
+                        widget = instancia.window
+                        import tkinter as tk
+                        if isinstance(widget, tk.Widget):
+                            try:
+                                if not widget.winfo_exists():
+                                    continue  # Omitir y limpiar este observador
+                            except Exception:
+                                continue  # Omitir en caso de cualquier error de consulta
+                
+                observadores_activos.append(callback)
+                
                 try:
                     if datos:
                         callback(datos)
@@ -41,6 +69,9 @@ class Eventos:
                         callback()
                 except Exception as e:
                     print(f"Error en callback: {e}")
+            
+            # Actualizar la lista con solo los observadores que siguen activos
+            cls._observadores[evento] = observadores_activos
     
     @classmethod
     def limpiar(cls):

@@ -9,32 +9,29 @@ from utils.alertas import Alertas
 from utils.database import get_connection
 import csv
 
-try:
-    import matplotlib.pyplot as plt
-    from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-    MATPLOTLIB_DISPONIBLE = True
-except ImportError:
-    MATPLOTLIB_DISPONIBLE = False
-
 
 class ReporteStock:
     """Reporte de stock actual"""
     
-    def __init__(self, parent, id_producto=None):
+    def __init__(self, parent, id_producto=None, main_app=None):
         self.parent = parent
         self.id_producto = id_producto
+        self.main_app = main_app
         self.tabla = None
         
-        self.window = tk.Toplevel(parent)
-        self.window.title("Reporte de Stock")
-        self.window.geometry("900x500")
-        self.window.configure(bg='#F0F0F0')
+        if main_app:
+            self.window = tk.Frame(parent, bg='#F0F0F0')
+            self.window.pack(fill=tk.BOTH, expand=True)
+        else:
+            self.window = tk.Toplevel(parent)
+            self.window.title("Reporte de Stock")
+            self.window.geometry("900x500")
+            self.window.configure(bg='#F0F0F0')
+            self.window.transient(parent.winfo_toplevel())
+            self.window.grab_set()
         
         self.crear_widgets()
         self.cargar_datos()
-        
-        self.window.transient(parent)
-        self.window.grab_set()
     
     def crear_widgets(self):
         tk.Label(self.window, text="REPORTE DE STOCK ACTUAL", 
@@ -58,7 +55,8 @@ class ReporteStock:
         scrollbar.config(command=self.tabla.yview)
         self.tabla.pack(fill=tk.BOTH, expand=True)
         
-        tk.Button(self.window, text="Cerrar", command=self.window.destroy,
+        command_cerrar = self.main_app._mostrar_dashboard if self.main_app else self.window.destroy
+        tk.Button(self.window, text="Cerrar", command=command_cerrar,
                  bg='#6C757D', fg='white', padx=20).pack(pady=10)
     
     def cargar_datos(self):
@@ -87,29 +85,34 @@ class ReporteStock:
 class ReporteMovimientos:
     """Reporte de movimientos de stock - ENTRADAS (cantidad > 0) y SALIDAS (cantidad < 0)"""
     
-    def __init__(self, parent, id_producto=None):
+    def __init__(self, parent, id_producto=None, main_app=None):
         self.parent = parent
         self.id_producto = id_producto
+        self.main_app = main_app
         self.producto_nombre = None
         self.movimientos = []
         self.movimientos_filtrados = []
         
-        self.window = tk.Toplevel(parent)
-        self.window.title("Reporte de Movimientos de Stock")
-        self.window.geometry("1300x650")
-        self.window.configure(bg='#F0F0F0')
+        if main_app:
+            self.window = tk.Frame(parent, bg='#F0F0F0')
+            self.window.pack(fill=tk.BOTH, expand=True)
+        else:
+            self.window = tk.Toplevel(parent)
+            self.window.title("Reporte de Movimientos de Stock")
+            self.window.geometry("1300x650")
+            self.window.configure(bg='#F0F0F0')
+            self.window.transient(parent.winfo_toplevel())
+            self.window.grab_set()
         
         if id_producto:
             producto = StockController.get_producto_by_id(id_producto)
             if producto:
                 self.producto_nombre = producto.nombre
-                self.window.title(f"Movimientos de Stock - {self.producto_nombre}")
+                if not main_app:
+                    self.window.title(f"Movimientos de Stock - {self.producto_nombre}")
         
         self.crear_widgets()
         self.cargar_movimientos()
-        
-        self.window.transient(parent)
-        self.window.grab_set()
     
     def crear_widgets(self):
         # Encabezado
@@ -259,7 +262,8 @@ class ReporteMovimientos:
                  bg='#6C757D', fg='white', font=("Arial", 10, "bold"),
                  padx=20, pady=8, cursor='hand2').pack(side=tk.LEFT, padx=5)
         
-        tk.Button(btn_frame, text="Cerrar", command=self.window.destroy,
+        command_cerrar = self.main_app._mostrar_dashboard if self.main_app else self.window.destroy
+        tk.Button(btn_frame, text="Cerrar", command=command_cerrar,
                  bg='#DC3545', fg='white', font=("Arial", 10, "bold"),
                  padx=20, pady=8, cursor='hand2').pack(side=tk.RIGHT, padx=5)
         
@@ -405,7 +409,7 @@ class ReporteMovimientos:
         detalle.geometry("450x400")
         detalle.configure(bg='#F0F0F0')
         detalle.resizable(False, False)
-        detalle.transient(self.window)
+        detalle.transient(self.window.winfo_toplevel())
         detalle.grab_set()
         
         frame = tk.Frame(detalle, bg='white', relief=tk.RAISED, bd=1, padx=20, pady=20)
@@ -535,20 +539,24 @@ class ReporteMovimientos:
 class ReporteVentas:
     """Reporte de ventas - Filtro por periodo funcional"""
     
-    def __init__(self, parent):
+    def __init__(self, parent, main_app=None):
         self.parent = parent
+        self.main_app = main_app
         self.tabla = None
         self.tabla_top = None
         
-        self.window = tk.Toplevel(parent)
-        self.window.title("Reporte de Ventas")
-        self.window.geometry("1000x600")
-        self.window.configure(bg='#F0F0F0')
+        if main_app:
+            self.window = tk.Frame(parent, bg='#F0F0F0')
+            self.window.pack(fill=tk.BOTH, expand=True)
+        else:
+            self.window = tk.Toplevel(parent)
+            self.window.title("Reporte de Ventas")
+            self.window.geometry("1000x600")
+            self.window.configure(bg='#F0F0F0')
+            self.window.transient(parent.winfo_toplevel())
+            self.window.grab_set()
         
         self.crear_widgets()
-        
-        self.window.transient(parent)
-        self.window.grab_set()
     
     def crear_widgets(self):
         tk.Label(self.window, text="REPORTE DE VENTAS", 
@@ -609,7 +617,8 @@ class ReporteVentas:
         self.tabla_top.pack(fill=tk.BOTH, expand=True)
         
         # Botón cerrar
-        tk.Button(self.window, text="Cerrar", command=self.window.destroy,
+        command_cerrar = self.main_app._mostrar_dashboard if self.main_app else self.window.destroy
+        tk.Button(self.window, text="Cerrar", command=command_cerrar,
                  bg='#DC3545', fg='white', font=("Arial", 10, "bold"),
                  padx=20, pady=8, cursor='hand2').pack(pady=10)
         

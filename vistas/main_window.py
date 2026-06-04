@@ -24,9 +24,13 @@ class MainWindow:
         
         # Variable para controlar alertas mostradas
         self.alertas_mostradas = set()
+        self.vista_actual = "dashboard"
         
         self._cargar_datos()
-        self._verificar_alertas()
+        
+        # Inicializar alertas mostradas con las existentes para que no salten al iniciar
+        self.alertas_mostradas = {p.get('id_producto') for p in self.productos_alerta if p.get('id_producto')}
+        
         self._crear_menu()
         self._crear_widgets()
         self._mostrar_dashboard()
@@ -98,6 +102,8 @@ class MainWindow:
         self.frame_principal.pack(fill=tk.BOTH, expand=True, padx=15, pady=15)
     
     def _mostrar_dashboard(self):
+        self.vista_actual = "dashboard"
+        self.window.title(f"Sistema de Control de Stock - {self.usuario['nombre_completo']}")
         for widget in self.frame_principal.winfo_children():
             widget.destroy()
         
@@ -193,7 +199,8 @@ class MainWindow:
     def _refrescar_datos(self):
         """Recarga los datos y actualiza la interfaz"""
         self._cargar_datos()
-        self._mostrar_dashboard()
+        if self.vista_actual == "dashboard":
+            self._mostrar_dashboard()
         self._verificar_alertas()
         self.window.update_idletasks()
     
@@ -206,29 +213,39 @@ class MainWindow:
         
         self.window.after(5000, auto_refresh)  # Primera actualización a los 5 segundos
     
+    def _cargar_vista(self, vista_class, nombre_vista, *args, **kwargs):
+        """Limpia el contenedor principal y carga la vista seleccionada"""
+        self.vista_actual = nombre_vista
+        for widget in self.frame_principal.winfo_children():
+            widget.destroy()
+        # Formatear nombre para el título
+        titulo_seccion = nombre_vista.replace('_', ' ').upper()
+        self.window.title(f"Sistema de Control de Stock - {self.usuario['nombre_completo']} - [{titulo_seccion}]")
+        vista_class(self.frame_principal, *args, main_app=self, **kwargs)
+
     def _abrir_productos(self):
         from vistas.productos_window import ProductosWindow
-        ProductosWindow(self.window, self.usuario)
+        self._cargar_vista(ProductosWindow, "productos", self.usuario)
     
     def _abrir_ventas(self):
         from vistas.ventas_window import VentasWindow
-        VentasWindow(self.window, self.usuario)
+        self._cargar_vista(VentasWindow, "ventas", self.usuario)
     
     def _abrir_pedidos(self):
         from vistas.pedidos_window import PedidosWindow
-        PedidosWindow(self.window, self.usuario)
+        self._cargar_vista(PedidosWindow, "pedidos", self.usuario)
     
     def _reporte_stock(self):
         from vistas.reportes_window import ReporteStock
-        ReporteStock(self.window)
+        self._cargar_vista(ReporteStock, "reporte_stock")
     
     def _reporte_movimientos(self):
         from vistas.reportes_window import ReporteMovimientos
-        ReporteMovimientos(self.window)
+        self._cargar_vista(ReporteMovimientos, "reporte_movimientos")
     
     def _reporte_ventas(self):
         from vistas.reportes_window import ReporteVentas
-        ReporteVentas(self.window)
+        self._cargar_vista(ReporteVentas, "reporte_ventas")
     
     def _salir(self):
         if messagebox.askyesno("Salir", "¿Está seguro que desea salir?"):

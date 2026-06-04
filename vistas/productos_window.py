@@ -8,24 +8,28 @@ from utils.eventos import Eventos, EVENTO_PRODUCTO_AGREGADO, EVENTO_STOCK_ACTUAL
 from utils.database import get_connection
 
 class ProductosWindow:
-    def __init__(self, parent, usuario):
+    def __init__(self, parent, usuario, main_app=None):
         self.parent = parent
         self.usuario = usuario
+        self.main_app = main_app
         self.productos = []
         
-        self.window = tk.Toplevel(parent)
-        self.window.title("Gestion de Productos")
-        self.window.geometry("1100x650")
-        self.window.configure(bg='#F0F0F0')
+        if main_app:
+            self.window = tk.Frame(parent, bg='#F0F0F0')
+            self.window.pack(fill=tk.BOTH, expand=True)
+        else:
+            self.window = tk.Toplevel(parent)
+            self.window.title("Gestion de Productos")
+            self.window.geometry("1100x650")
+            self.window.configure(bg='#F0F0F0')
+            self.window.transient(parent.winfo_toplevel())
+            self.window.grab_set()
+            self.window.focus_force()
         
         self.cargar_datos()
         self.crear_widgets()
         
         Eventos.suscribir(EVENTO_STOCK_ACTUALIZADO, self.refrescar_tabla)
-        
-        self.window.transient(parent)
-        self.window.grab_set()
-        self.window.focus_force()
     
     def cargar_datos(self):
         self.productos = StockController.get_all_productos()
@@ -87,7 +91,8 @@ class ProductosWindow:
         tk.Button(frame_botones, text="Ver Movimientos", command=self.ver_movimientos,
                  bg='#17A2B8', fg='white', padx=20).pack(side=tk.LEFT, padx=5)
         
-        tk.Button(frame_botones, text="Cerrar", command=self.window.destroy,
+        command_cerrar = self.main_app._mostrar_dashboard if self.main_app else self.window.destroy
+        tk.Button(frame_botones, text="Cerrar", command=command_cerrar,
                  bg='#DC3545', fg='white', padx=20).pack(side=tk.RIGHT, padx=5)
         
         tk.Label(self.window, text="Doble clic en cualquier producto para editar el stock", 
@@ -142,7 +147,7 @@ class ProductosWindow:
         dialog.geometry("500x550")
         dialog.configure(bg='#F0F0F0')
         dialog.resizable(False, False)
-        dialog.transient(self.window)
+        dialog.transient(self.window.winfo_toplevel())
         dialog.grab_set()
         
         dialog.update_idletasks()
@@ -429,7 +434,7 @@ class FormularioProducto:
         self.window.configure(bg='#F0F0F0')
         self.window.resizable(False, False)
         
-        self.window.transient(parent)
+        self.window.transient(parent.winfo_toplevel())
         self.window.grab_set()
         
         self.cargar_datos()

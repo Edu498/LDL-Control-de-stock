@@ -29,7 +29,7 @@ class AjusteStockWindow:
         self.window.geometry(f"550x650+{x}+{y}")
         
         # Configurar modal
-        self.window.transient(parent)
+        self.window.transient(parent.winfo_toplevel())
         self.window.grab_set()
         self.window.focus_force()
         

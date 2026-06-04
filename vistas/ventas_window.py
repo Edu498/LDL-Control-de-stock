@@ -7,23 +7,27 @@ from utils import Alertas, formatear_precio, generar_numero_factura
 from utils.eventos import Eventos, EVENTO_VENTA_REGISTRADA, EVENTO_STOCK_ACTUALIZADO
 
 class VentasWindow:
-    def __init__(self, parent, usuario):
+    def __init__(self, parent, usuario, main_app=None):
         self.parent = parent
         self.usuario = usuario
+        self.main_app = main_app
         self.carrito = []
         self.total = 0.0
         
-        self.window = tk.Toplevel(parent)
-        self.window.title("Registro de Ventas")
-        self.window.geometry("1200x700")
-        self.window.configure(bg='#F0F0F0')
+        if main_app:
+            self.window = tk.Frame(parent, bg='#F0F0F0')
+            self.window.pack(fill=tk.BOTH, expand=True)
+        else:
+            self.window = tk.Toplevel(parent)
+            self.window.title("Registro de Ventas")
+            self.window.geometry("1200x700")
+            self.window.configure(bg='#F0F0F0')
+            self.window.transient(parent.winfo_toplevel())
+            self.window.grab_set()
+            self.window.focus_force()
         
         self.cargar_datos()
         self.crear_widgets()
-        
-        self.window.transient(parent)
-        self.window.grab_set()
-        self.window.focus_force()
     
     def cargar_datos(self):
         self.productos = StockController.get_all_productos()
@@ -150,6 +154,10 @@ class VentasWindow:
         
         tk.Button(frame_botones, text="🧹 Limpiar Carrito", command=self.limpiar_carrito,
                  bg='#6C757D', fg='white', padx=20).pack(side=tk.LEFT, padx=5)
+        
+        if self.main_app:
+            tk.Button(frame_botones, text="❌ Volver", command=self.main_app._mostrar_dashboard,
+                     bg='#DC3545', fg='white', padx=20).pack(side=tk.LEFT, padx=5)
         
         tk.Button(frame_botones, text="💾 Registrar Venta", command=self.registrar_venta,
                  bg='#28A745', fg='white', font=("Arial", 12, "bold"), padx=30).pack(side=tk.RIGHT)
@@ -307,10 +315,13 @@ class VentasWindow:
             self.entry_cliente.insert(0, "CONSUMIDOR FINAL")
             
             # ACTUALIZAR DASHBOARD
-            if hasattr(self.parent, '_refrescar_datos'):
-                self.parent._refrescar_datos()
-            
-            self.window.destroy()
+            if self.main_app:
+                self.main_app._refrescar_datos()
+                self.main_app._mostrar_dashboard()
+            else:
+                if hasattr(self.parent, '_refrescar_datos'):
+                    self.parent._refrescar_datos()
+                self.window.destroy()
             
         except Exception as e:
             Alertas.mostrar_mensaje_error(f"❌ Error al registrar la venta: {str(e)}")
