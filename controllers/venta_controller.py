@@ -88,6 +88,51 @@ class VentaController:
             close_connection(conexion, cursor)
     
     @staticmethod
+    def registrar_venta_sin_stock(venta):
+        """
+        Registra una nueva venta local en la cabecera e histórico, pero NO descuenta 
+        stock ni registra movimientos_stock, ya que de eso se encarga la API.
+        """
+        conexion = None
+        cursor = None
+        
+        try:
+            conexion = get_connection()
+            cursor = conexion.cursor()
+            conexion.start_transaction()
+            
+            subtotal = venta.subtotal
+            iva = venta.iva
+            total = venta.total
+            
+            cursor.execute("""
+                INSERT INTO ventas (numero_factura, cliente_nombre, subtotal, iva, total, usuario, id_estado, fecha_venta)
+                VALUES (%s, %s, %s, %s, %s, %s, 2, NOW())
+            """, (venta.numero_factura, venta.cliente_nombre, subtotal, iva, total, venta.usuario))
+            
+            venta.id_venta = cursor.lastrowid
+            
+            for detalle in venta.detalles:
+                cursor.execute("""
+                    INSERT INTO detalles_venta (id_venta, id_producto, cantidad, 
+                                                precio_unitario, subtotal)
+                    VALUES (%s, %s, %s, %s, %s)
+                """, (venta.id_venta, detalle.id_producto, detalle.cantidad,
+                      detalle.precio_unitario, detalle.subtotal))
+            
+            conexion.commit()
+            print(f"✅ Venta local {venta.numero_factura} registrada solo como histórico.")
+            return venta
+            
+        except Exception as e:
+            if conexion:
+                conexion.rollback()
+            print(f"❌ Error al registrar venta histórica: {e}")
+            raise e
+        finally:
+            close_connection(conexion, cursor)
+    
+    @staticmethod
     def get_ventas_hoy():
         """
         Recupera el listado de todas las ventas concretadas en la fecha actual.

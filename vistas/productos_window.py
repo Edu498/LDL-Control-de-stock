@@ -144,16 +144,16 @@ class ProductosWindow:
         """Muestra diálogo para ajustar stock - Usando la misma lógica que AjusteStockWindow"""
         dialog = tk.Toplevel(self.window)
         dialog.title(f"Ajuste de Stock - {producto.nombre}")
-        dialog.geometry("500x550")
+        dialog.geometry("600x700")
         dialog.configure(bg='#F0F0F0')
         dialog.resizable(False, False)
         dialog.transient(self.window.winfo_toplevel())
         dialog.grab_set()
         
         dialog.update_idletasks()
-        x = (dialog.winfo_screenwidth() - 500) // 2
-        y = (dialog.winfo_screenheight() - 550) // 2
-        dialog.geometry(f"500x550+{x}+{y}")
+        x = (dialog.winfo_screenwidth() - 600) // 2
+        y = (dialog.winfo_screenheight() - 700) // 2
+        dialog.geometry(f"600x700+{x}+{y}")
         
         # Contenido
         frame = tk.Frame(dialog, bg='white', padx=20, pady=20)
@@ -199,12 +199,17 @@ class ProductosWindow:
         rb_agregar = tk.Radiobutton(radio_frame, text="AGREGAR STOCK", variable=tipo_var,
                       value="agregar", bg='white', font=("Arial", 11, "bold"), fg='#28A745',
                       selectcolor='white', indicatoron=1)
-        rb_agregar.pack(side=tk.LEFT, padx=30)
+        rb_agregar.pack(side=tk.LEFT, padx=10)
         
         rb_quitar = tk.Radiobutton(radio_frame, text="QUITAR STOCK", variable=tipo_var,
                       value="quitar", bg='white', font=("Arial", 11, "bold"), fg='#DC3545',
                       selectcolor='white', indicatoron=1)
-        rb_quitar.pack(side=tk.LEFT, padx=30)
+        rb_quitar.pack(side=tk.LEFT, padx=10)
+        
+        rb_conteo = tk.Radiobutton(radio_frame, text="CONTEO FÍSICO", variable=tipo_var,
+                      value="conteo", bg='white', font=("Arial", 11, "bold"), fg='#3498DB',
+                      selectcolor='white', indicatoron=1)
+        rb_conteo.pack(side=tk.LEFT, padx=10)
         
         # Cantidad
         tk.Label(frame, text="Cantidad:", font=("Arial", 12, "bold"), 
@@ -229,7 +234,8 @@ class ProductosWindow:
             'Merma o rotura',
             'Devolución de cliente',
             'Ingreso por compra',
-            'Egreso por venta'
+            'Egreso por venta',
+            'Conteo físico periódico'
         ], width=45, font=("Arial", 11))
         combo_motivo.pack(fill=tk.X, pady=5)
         combo_motivo.set('Ajuste de inventario')
@@ -264,6 +270,9 @@ class ProductosWindow:
                     if nuevo < 0:
                         nuevo = 0
                     lbl_nuevo.config(fg='#DC3545')
+                elif tipo_var.get() == "conteo":
+                    nuevo = cantidad
+                    lbl_nuevo.config(fg='#3498DB')
                 else:
                     nuevo = producto.stock_actual + cantidad
                     lbl_nuevo.config(fg='#28A745')
@@ -276,6 +285,7 @@ class ProductosWindow:
         spin_cantidad.bind('<KeyRelease>', actualizar_estimacion)
         rb_agregar.config(command=actualizar_estimacion)
         rb_quitar.config(command=actualizar_estimacion)
+        rb_conteo.config(command=actualizar_estimacion)
         
         # Botones
         btn_frame = tk.Frame(frame, bg='white')
@@ -311,6 +321,16 @@ class ProductosWindow:
                 cantidad_ajuste = -cantidad  # NEGATIVO para SALIDA
                 tipo_mov = 4  # Ajuste Negativo
                 texto_operacion = f"QUITAR {cantidad} unidades"
+            elif tipo_var.get() == "conteo":
+                diferencia = cantidad - producto.stock_actual
+                if diferencia == 0:
+                    messagebox.showwarning("Aviso", "El stock es el mismo, no hay ajuste que hacer.")
+                    return
+                cantidad_ajuste = diferencia
+                tipo_mov = 3 if diferencia > 0 else 4
+                texto_operacion = f"CONTEO FÍSICO ({diferencia:+})"
+                if combo_motivo.get() == 'Ajuste de inventario':
+                    combo_motivo.set('Conteo físico periódico')
             else:
                 cantidad_ajuste = cantidad   # POSITIVO para ENTRADA
                 tipo_mov = 3  # Ajuste Positivo

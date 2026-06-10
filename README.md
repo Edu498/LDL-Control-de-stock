@@ -68,6 +68,58 @@ El proyecto está organizado de manera modular en las siguientes carpetas:
 
 ---
 
+## 🔄 Flujo de Negocio y Ciclo de Vida del Producto
+
+Para asegurar que el inventario refleje la realidad en todo momento y no se presenten quiebres de stock ocultos, el sistema plantea el siguiente flujo de negocio documentado:
+
+1. **Venta o Salida Real (Tiempo Real):**
+   - Las ventas reales del comercio ocurren en un sistema de facturación externo (Punto de Venta o eCommerce).
+   - Para evitar la doble carga y los errores humanos, este sistema dispone de una API (ver `api_ventas.py`) que actúa como **contrato de entrada**.
+   - Cuando el sistema externo cierra una venta, dispara un evento a la API que se registra inmediatamente en una **tabla intermedia** (`ventas_pendientes_stock`) con estado `pendiente`.
+   - *Nota:* El módulo de "Ventas" incluido en la aplicación de escritorio sirve **únicamente como contingencia manual o simulación**.
+
+2. **Proceso de Stock Inmediato y Auditoría:**
+   - Un proceso interno lee la tabla intermedia y procesa las ventas pendientes.
+   - Descuenta el stock y actualiza el estado en la tabla a `procesada` (o `error` si hay inconsistencias).
+   - Automáticamente se genera un registro inmutable en la tabla `movimientos_stock` detallando fecha, usuario, cantidad, y el ID de la transacción externa.
+
+3. **Alerta y Sugerencia de Pedido:**
+   - Si el stock, tras una salida, cae por debajo del umbral mínimo, el sistema activa una alerta visual (`SIN STOCK` o `STOCK BAJO`).
+   - El módulo de "Pedidos" agrupa estos productos automáticamente y sugiere cantidades óptimas a reponer agrupadas por proveedor.
+
+4. **Confirmación de Compra y Recepción (Ingreso):**
+   - El usuario genera y confirma el pedido.
+   - Al recibir la mercadería, el usuario va a "Pedidos Pendientes -> Recibir". 
+   - Solo al confirmar las cantidades recibidas físicamente, el stock vuelve a aumentar.
+
+5. **Control Físico Periódico (Auditoría):**
+   - Periódicamente, el encargado de depósito utiliza la opción **"Conteo Físico"** en la ventana de Ajuste de Inventario. Ingresa la cantidad exacta observada en estantería.
+   - El sistema calcula la diferencia automáticamente y ajusta el stock generando un movimiento compensatorio (merma o sobrante) para cuadrar el inventario virtual con el real.
+
+---
+
+## 🔌 Instrucciones para el Sistema Externo (Contrato de Integración)
+
+Para que el sistema de facturación externo se comunique con este módulo de control de stock, debe seguir los siguientes pasos:
+
+1. **Ubicación de la API:** La API (`api_ventas.py`) debe estar en ejecución continua. Escuchará peticiones en `http://<IP_DEL_SERVIDOR>:5000/api/ventas`.
+2. **Trigger del Sistema Externo:** El sistema de ventas debe configurarse para que, inmediatamente después de cerrar un ticket o factura exitosamente, realice una petición HTTP `POST` a la URL mencionada.
+3. **Mapeo de Datos:** El JSON enviado debe tener la siguiente estructura estricta:
+   ```json
+   {
+       "origen": "SISTEMA_POS_EXTERNO",
+       "referencia_externa": "ID_FACTURA_O_TICKET",
+       "productos": [
+           {"codigo": "CODIGO_DEL_PRODUCTO_1", "cantidad": 2},
+           {"codigo": "CODIGO_DEL_PRODUCTO_2", "cantidad": 1}
+       ]
+   }
+   ```
+   *Es vital que el campo `codigo` coincida exactamente con los códigos registrados en esta base de datos de control de stock.*
+4. **Manejo de Errores:** Si el sistema externo no logra conectarse con la API (ej. caída de red), se recomienda que guarde la venta en una cola local y reintente el envío más tarde. Una vez que la API recibe el JSON, nuestro sistema garantiza la consistencia transaccional y la auditoría.
+
+---
+
 ## 🗄️ Modelo y Estructura de la Base de Datos
 
 El script `crear_bd.py` genera de manera automática la base de datos `control_stock` con **13 tablas interrelacionadas** y una **vista optimizada**:

@@ -136,6 +136,22 @@ def crear_base_datos():
         """)
         print("✅ Tabla ventas creada")
         
+        # Tabla ventas_pendientes_stock (Contrato de Integración)
+        cursor.execute("""
+        CREATE TABLE ventas_pendientes_stock (
+            id_evento INT AUTO_INCREMENT PRIMARY KEY,
+            origen VARCHAR(50) NOT NULL,
+            codigo_producto VARCHAR(50) NOT NULL,
+            cantidad INT NOT NULL,
+            fecha_evento TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            estado VARCHAR(20) DEFAULT 'pendiente',
+            mensaje_error TEXT,
+            fecha_procesado TIMESTAMP NULL,
+            referencia_externa VARCHAR(100)
+        )
+        """)
+        print("✅ Tabla ventas_pendientes_stock creada")
+        
         # Tabla detalles_venta
         cursor.execute("""
         CREATE TABLE detalles_venta (

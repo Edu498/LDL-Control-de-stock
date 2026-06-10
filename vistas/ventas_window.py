@@ -34,8 +34,12 @@ class VentasWindow:
         self.productos_dict = {p.codigo: p for p in self.productos}
     
     def crear_widgets(self):
-        tk.Label(self.window, text="📝 REGISTRO DE VENTAS", 
-                font=("Arial", 16, "bold"), bg='#F0F0F0').pack(pady=10)
+        tk.Label(self.window, text="📝 REGISTRO DE SALIDAS (SIMULACIÓN/CONTINGENCIA)", 
+                font=("Arial", 16, "bold"), bg='#F0F0F0').pack(pady=(10, 2))
+        
+        # Alerta visual requerida por el profesor
+        tk.Label(self.window, text="⚠️ ATENCIÓN: Las ventas reales se descuentan automáticamente vía API. Use este módulo solo para simulación o fallos del sistema externo.", 
+                font=("Arial", 9, "italic"), bg='#FFF3CD', fg='#856404', pady=5).pack(fill=tk.X, padx=15, pady=(0, 10))
         
         frame_principal = tk.Frame(self.window, bg='#F0F0F0')
         frame_principal.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
@@ -280,48 +284,87 @@ class VentasWindow:
             Alertas.mostrar_mensaje_advertencia("El carrito está vacío")
             return
         
-        from models import Venta, DetalleVenta
+        try:
+            import requests
+        except ImportError:
+            Alertas.mostrar_mensaje_error("Error: Librería 'requests' no instalada.")
+            return
         
-        venta = Venta(
-            numero_factura=generar_numero_factura(),
-            cliente_nombre=self.entry_cliente.get().strip() or "CONSUMIDOR FINAL",
-            usuario=self.usuario['nombre_usuario']
-        )
+        ref_factura = generar_numero_factura()
         
+        # Armar el JSON (contrato de integración)
+        payload = {
+            "origen": "SIMULACION_LOCAL",
+            "referencia_externa": ref_factura,
+            "productos": []
+        }
+        
+        total_venta = 0
         for item in self.carrito:
-            venta.agregar_detalle(
-                item['id_producto'],
-                item['nombre'],
-                item['cantidad'],
-                item['precio']
-            )
+            payload["productos"].append({
+                "codigo": item['codigo'],
+                "cantidad": item['cantidad']
+            })
+            total_venta += item['subtotal']
+        total_venta = total_venta * 1.21  # con IVA
         
         try:
-            VentaController.registrar_venta(venta)
+            # Enviar petición a la API
+            respuesta = requests.post('http://localhost:5000/api/ventas', json=payload)
             
-            # NOTIFICAR EVENTOS
-            Eventos.notificar(EVENTO_VENTA_REGISTRADA, {
-                'factura': venta.numero_factura,
-                'total': venta.total
-            })
-            Eventos.notificar(EVENTO_STOCK_ACTUALIZADO)
-            
-            Alertas.mostrar_mensaje_exito(f"✅ Venta registrada exitosamente!\nFactura: {venta.numero_factura}\nTotal: ${venta.total:,.2f}")
-            
-            self.limpiar_carrito()
-            self.cargar_datos()
-            self.actualizar_tabla_productos()
-            self.entry_cliente.delete(0, tk.END)
-            self.entry_cliente.insert(0, "CONSUMIDOR FINAL")
-            
-            # ACTUALIZAR DASHBOARD
-            if self.main_app:
-                self.main_app._refrescar_datos()
-                self.main_app._mostrar_dashboard()
+            if respuesta.status_code == 200:
+                # Opcional: También registramos localmente en la vieja tabla de ventas para
+                # no romper la pantalla de 'Reportes' que pueda leer de ahí, pero
+                # el stock ya fue actualizado por la API
+                from models import Venta
+                from controllers import VentaController
+                
+                venta = Venta(
+                    numero_factura=ref_factura,
+                    cliente_nombre=self.entry_cliente.get().strip() or "CONSUMIDOR FINAL",
+                    usuario=self.usuario.get('nombre_usuario', 'admin') if isinstance(self.usuario, dict) else str(self.usuario)
+                )
+                for item in self.carrito:
+                    venta.agregar_detalle(item['id_producto'], item['nombre'], item['cantidad'], item['precio'])
+                
+                # Inserción en la DB local SOLO para reportes históricos de caja
+                VentaController.registrar_venta_sin_stock(venta)
+                
+                # NOTIFICAR EVENTOS
+                Eventos.notificar(EVENTO_VENTA_REGISTRADA, {
+                    'factura': ref_factura,
+                    'total': total_venta
+                })
+                Eventos.notificar(EVENTO_STOCK_ACTUALIZADO)
+                
+                Alertas.mostrar_mensaje_exito(
+                    f"✅ Venta enviada por API exitosamente!\n"
+                    f"Referencia: {ref_factura}\n\n"
+                    f"El stock ha sido actualizado mediante la tabla de integración."
+                )
+                
+                self.limpiar_carrito()
+                self.cargar_datos()
+                self.actualizar_tabla_productos()
+                self.entry_cliente.delete(0, tk.END)
+                self.entry_cliente.insert(0, "CONSUMIDOR FINAL")
+                
+                # ACTUALIZAR DASHBOARD
+                if self.main_app:
+                    self.main_app._refrescar_datos()
+                    self.main_app._mostrar_dashboard()
+                else:
+                    if hasattr(self.parent, '_refrescar_datos'):
+                        self.parent._refrescar_datos()
+                    self.window.destroy()
             else:
-                if hasattr(self.parent, '_refrescar_datos'):
-                    self.parent._refrescar_datos()
-                self.window.destroy()
-            
+                Alertas.mostrar_mensaje_error(f"❌ Error de la API:\n{respuesta.json().get('error', respuesta.text)}")
+                
+        except requests.exceptions.ConnectionError:
+            Alertas.mostrar_mensaje_error(
+                "❌ Error de Conexión:\n\n"
+                "Para probar la simulación, asegúrese de que la API de integración "
+                "(api_ventas.py) esté corriendo en background (puerto 5000)."
+            )
         except Exception as e:
-            Alertas.mostrar_mensaje_error(f"❌ Error al registrar la venta: {str(e)}")
+            Alertas.mostrar_mensaje_error(f"❌ Error inesperado: {str(e)}")

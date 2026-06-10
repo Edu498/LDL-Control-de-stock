@@ -18,15 +18,15 @@ class AjusteStockWindow:
         # Crear ventana principal
         self.window = tk.Toplevel(parent)
         self.window.title(f"Ajuste de Inventario - {producto.nombre}")
-        self.window.geometry("550x650")
+        self.window.geometry("600x700")
         self.window.configure(bg='#F0F4F8')
         self.window.resizable(False, False)
         
         # Centrar ventana
         self.window.update_idletasks()
-        x = (self.window.winfo_screenwidth() - 550) // 2
-        y = (self.window.winfo_screenheight() - 650) // 2
-        self.window.geometry(f"550x650+{x}+{y}")
+        x = (self.window.winfo_screenwidth() - 600) // 2
+        y = (self.window.winfo_screenheight() - 700) // 2
+        self.window.geometry(f"600x700+{x}+{y}")
         
         # Configurar modal
         self.window.transient(parent.winfo_toplevel())
@@ -120,7 +120,14 @@ class AjusteStockWindow:
                                       bg='white', font=("Segoe UI", 11, "bold"),
                                       fg='#E74C3C', selectcolor='white',
                                       command=self.actualizar_estimacion)
-        salida_radio.pack(side=tk.LEFT, padx=20)
+        salida_radio.pack(side=tk.LEFT, padx=10)
+        
+        conteo_radio = tk.Radiobutton(radio_frame, text="CONTEO FÍSICO", 
+                                      variable=self.tipo_ajuste, value="conteo",
+                                      bg='white', font=("Segoe UI", 11, "bold"),
+                                      fg='#3498DB', selectcolor='white',
+                                      command=self.actualizar_estimacion)
+        conteo_radio.pack(side=tk.LEFT, padx=10)
         
         # CANTIDAD
         cantidad_frame = tk.Frame(operacion_card, bg='white')
@@ -151,7 +158,8 @@ class AjusteStockWindow:
         
         self.combo_motivo = ttk.Combobox(motivo_frame, values=[
             'Ajuste de inventario', 'Corrección de stock', 
-            'Merma o rotura', 'Devolución', 'Ingreso manual'
+            'Merma o rotura', 'Devolución', 'Ingreso manual',
+            'Conteo físico periódico'
         ], width=45, font=("Segoe UI", 10))
         self.combo_motivo.pack(fill=tk.X, pady=5)
         self.combo_motivo.set('Ajuste de inventario')
@@ -223,6 +231,10 @@ class AjusteStockWindow:
                 nuevo = 0
             self.lbl_mensaje.config(text="Se QUITARÁN unidades del stock actual")
             self.lbl_nuevo_stock.config(fg='#E74C3C')
+        elif self.tipo_ajuste.get() == "conteo":
+            nuevo = cantidad
+            self.lbl_mensaje.config(text="Se ESTABLECERÁ el stock al valor indicado")
+            self.lbl_nuevo_stock.config(fg='#3498DB')
         else:
             nuevo = self.producto.stock_actual + cantidad
             self.lbl_mensaje.config(text="Se AGREGARÁN unidades al stock actual")
@@ -252,6 +264,16 @@ class AjusteStockWindow:
             cantidad_ajuste = -cantidad
             tipo_movimiento = 4
             operacion_texto = f"QUITAR {cantidad} unidades"
+        elif self.tipo_ajuste.get() == "conteo":
+            diferencia = cantidad - self.producto.stock_actual
+            if diferencia == 0:
+                Alertas.mostrar_mensaje_advertencia("La cantidad ingresada es igual al stock actual. No hay ajuste que realizar.")
+                return
+            cantidad_ajuste = diferencia
+            tipo_movimiento = 3 if diferencia > 0 else 4
+            operacion_texto = f"CONTEO FÍSICO (Diferencia: {diferencia:+} unidades)"
+            if not self.combo_motivo.get() or self.combo_motivo.get() == 'Ajuste de inventario':
+                self.combo_motivo.set('Conteo físico periódico')
         else:
             cantidad_ajuste = cantidad
             tipo_movimiento = 3
