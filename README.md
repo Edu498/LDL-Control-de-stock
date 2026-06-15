@@ -1,4 +1,4 @@
-# 📦 Sistema de Control de Stock v2.0.0
+# 📦 Sistema de Control de Stock v3.0
 
 Bienvenido al **Sistema de Control de Stock**, una solución de escritorio robusta y profesional desarrollada en **Python** utilizando **Tkinter** para la interfaz gráfica y **MySQL** para la persistencia de datos.
 
@@ -8,6 +8,7 @@ Este proyecto ha sido estructurado bajo un patrón de arquitectura **MVC (Modelo
 
 ## 🚀 Características Principales
 
+*   **🖥️ Interfaz Unificada (Single-Window):** Nuevo Dashboard centralizado que permite navegar entre módulos (Productos, Ventas, Pedidos, Reportes) dentro de la misma ventana de forma dinámica, mejorando notablemente la experiencia de usuario.
 *   **🔑 Control de Acceso y Roles:** Pantalla de Login con soporte para perfiles diferenciados (`Administrador`, `Vendedor`, `Encargado de Compras`) y validación segura.
 *   **📦 Gestión de Inventario (Productos):** Altas, bajas, modificaciones y consultas de productos. Incluye control de códigos de barra/únicos, categorización, asignación de proveedores, precios de compra/venta, cálculo automático de IVA y ubicaciones físicas en depósito.
 *   **📊 Movimientos de Stock:** Registro histórico automatizado y detallado de cada entrada/salida (por venta, compra, ajuste manual positivo/negativo, devolución o merma) detallando usuario y fecha.
@@ -59,10 +60,8 @@ El proyecto está organizado de manera modular en las siguientes carpetas:
 │
 ├── config.py               # Configuración global (Base de datos, IVA, negocio)
 ├── crear_bd.py             # Script de inicialización de la Base de Datos MySQL
-├── diagnosticar.py         # Utilidad de diagnóstico rápido del estado del motor
-├── verificar_estructura.py # Validador del árbol de directorios del proyecto
-├── prueba_directa.py       # Simulación de operaciones de stock independientes
-├── main.py                 # Punto de entrada principal de la aplicación
+├── api_ventas.py           # API Flask en segundo plano para integración de ventas
+├── main.py                 # Punto de entrada principal de la aplicación (Lanza GUI y API)
 └── requirements.txt        # Dependencias de Python requeridas
 ```
 
@@ -195,30 +194,15 @@ Para iniciar la interfaz gráfica del programa, ejecuta el archivo principal:
 python main.py
 ```
 
-### Scripts de Diagnóstico e Integridad
-Se incluyen utilidades de consola creadas específicamente para verificar el correcto funcionamiento del software:
+### Integración en Segundo Plano
+Al ejecutar `main.py`, el sistema levanta automáticamente la aplicación de escritorio en Tkinter y, en segundo plano (de forma transparente para el usuario), inicia la **API de integración** (`api_ventas.py`) basada en Flask. 
 
-1.  **Verificar Integridad de Archivos:**
-    ```bash
-    python verificar_estructura.py
-    ```
-    *Comprueba que todas las carpetas y archivos críticos estén ubicados en su lugar correspondiente.*
-
-2.  **Diagnosticar Base de Datos:**
-    ```bash
-    python diagnosticar.py
-    ```
-    *Muestra en consola el estado de conexión de la base de datos, la lista de movimientos registrados en el sistema y los productos críticos de forma rápida sin abrir la GUI.*
-
-3.  **Simular Transacciones de Inventario:**
-    ```bash
-    python prueba_directa.py
-    ```
-    *Permite simular ingresos y egresos de stock a nivel lógico directamente en la base de datos, verificando que los disparadores lógicos actúen adecuadamente.*
+Esto permite que, mientras se usa el dashboard principal para gestión interna, el programa esté continuamente escuchando ventas generadas en sistemas externos y actualizando el stock y el panel de alertas en tiempo real mediante un bus de eventos en memoria.
 
 ---
 
 ## 🛠️ Tecnologías y Buenas Prácticas
 *   **Conexión Segura (Pool de Conexiones):** Implementación de un pool thread-safe para optimizar los recursos de conexión TCP a MySQL.
 *   **Manejo de Transacciones (ACID):** Rollbacks automáticos ante fallos durante operaciones complejas de facturación o recepción de pedidos.
-*   **Interfaces dinámicas con Tkinter:** Uso de elementos adaptativos, binding de eventos de teclado (como presionar `Enter` para ingresar) y efectos interactivos visuales (hover en botones).
+*   **Interfaces dinámicas con Tkinter:** Interfaz unificada (Single-Window) con auto-refresh sin recargar ventanas, uso de elementos adaptativos y efectos interactivos visuales.
+*   **Arquitectura Dirigida por Eventos:** Uso de un gestor de eventos en memoria (`utils/eventos.py`) que desacopla la lógica de negocio de la interfaz, permitiendo actualizaciones en tiempo real en el dashboard principal cuando ocurren ventas o cambia el stock.
