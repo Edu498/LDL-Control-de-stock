@@ -21,8 +21,8 @@ def procesar_ventas_pendientes():
         # Iniciar transacción
         conexion.start_transaction()
         
-        # Buscar pendientes
-        cursor.execute("SELECT * FROM ventas_pendientes_stock WHERE estado = 'pendiente'")
+        # Buscar pendientes y bloquear las filas para evitar concurrencia
+        cursor.execute("SELECT * FROM ventas_pendientes_stock WHERE estado = 'pendiente' FOR UPDATE")
         pendientes = cursor.fetchall()
         
         for p in pendientes:
@@ -31,8 +31,8 @@ def procesar_ventas_pendientes():
             cantidad = p['cantidad']
             ref = p['referencia_externa']
             
-            # Buscar el producto
-            cursor.execute("SELECT id_producto, stock_actual, nombre FROM productos WHERE codigo = %s", (codigo,))
+            # Buscar el producto y bloquear la fila para evitar conflictos de stock
+            cursor.execute("SELECT id_producto, stock_actual, nombre FROM productos WHERE codigo = %s FOR UPDATE", (codigo,))
             producto = cursor.fetchone()
             
             if not producto:
@@ -48,9 +48,21 @@ def procesar_ventas_pendientes():
             id_prod = producto['id_producto']
             stock_antes = producto['stock_actual']
             
-            # NOTA: En un caso real podríamos permitir stock negativo momentáneo,
-            # pero aquí lo limitaremos o advertiremos. Para el MVP permitimos que 
-            # el stock quede negativo pero informamos.
+            if stock_antes < cantidad:
+                # Marcar error por falta de stock
+                cursor.execute("""
+                    UPDATE ventas_pendientes_stock 
+                    SET estado = 'error', mensaje_error = 'Stock insuficiente', fecha_procesado = NOW() 
+                    WHERE id_evento = %s
+                """, (id_evento,))
+                resultados.append({
+                    "id_evento": id_evento, 
+                    "codigo": codigo,
+                    "status": "error", 
+                    "mensaje": f"Stock insuficiente (Actual: {stock_antes}, Solicitado: {cantidad})"
+                })
+                continue
+                
             stock_despues = stock_antes - cantidad
             
             # Actualizar stock
@@ -107,51 +119,161 @@ def registrar_venta_externa():
         ]
     }
     """
-    datos = request.get_json()
+    # Usar silent=True para evitar que Flask aborte si no es un JSON válido
+    datos = request.get_json(silent=True)
     
-    if not datos or 'productos' not in datos:
+    if not datos:
+        return jsonify({"error": "No se recibió un JSON válido o el Content-Type no es application/json."}), 400
+
+    if 'productos' not in datos or not isinstance(datos['productos'], list):
         return jsonify({"error": "Formato inválido. Se requiere una lista de 'productos'."}), 400
         
-    productos = datos.get('productos', [])
-    if not productos:
+    productos = datos['productos']
+    if len(productos) == 0:
         return jsonify({"error": "La lista de productos está vacía."}), 400
+        
+    # Validar la estructura de cada producto antes de abrir transacciones en BD
+    for item in productos:
+        if not isinstance(item, dict):
+            return jsonify({"error": "Cada item en 'productos' debe ser un objeto JSON."}), 400
+        if 'codigo' not in item or not isinstance(item['codigo'], str) or not item['codigo'].strip():
+            return jsonify({"error": "Todos los productos deben tener un 'codigo' válido."}), 400
+        
+        try:
+            cantidad = int(item.get('cantidad', 1))
+            if cantidad <= 0:
+                return jsonify({"error": f"La cantidad para el producto {item['codigo']} debe ser mayor a 0."}), 400
+            item['cantidad'] = cantidad # Normalizar a entero
+        except (ValueError, TypeError):
+            return jsonify({"error": f"La cantidad para el producto {item['codigo']} debe ser un número entero."}), 400
 
     origen = datos.get('origen', 'API')
     ref_externa = datos.get('referencia_externa', f"API-{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}")
     
     conexion = None
     cursor = None
-    eventos_generados = []
     
     try:
         conexion = get_connection()
+        
+        # Agrupar cantidades por producto para la validación y evitar duplicados
+        cantidades_solicitadas = {}
+        for item in productos:
+            codigo = item['codigo']
+            cantidades_solicitadas[codigo] = cantidades_solicitadas.get(codigo, 0) + item['cantidad']
+
+        # Extraer el cliente de los datos o usar uno por defecto basado en el origen
+        cliente_nombre = datos.get('cliente', f"API - {origen}")
+
+        # Iniciar transacción
+        conexion.start_transaction()
+        cursor_dict = conexion.cursor(dictionary=True)
+        
+        errores = []
+        productos_procesar = []
+        
+        # 1. Validar existencia y stock de todos los productos primero
+        for codigo, cantidad in cantidades_solicitadas.items():
+            cursor_dict.execute("SELECT id_producto, stock_actual, nombre, precio_venta FROM productos WHERE codigo = %s FOR UPDATE", (codigo,))
+            prod_db = cursor_dict.fetchone()
+            
+            if not prod_db:
+                errores.append({"codigo": codigo, "mensaje": f"Producto '{codigo}' no encontrado."})
+            elif prod_db['stock_actual'] < cantidad:
+                errores.append({"codigo": codigo, "mensaje": f"Stock insuficiente para '{prod_db['nombre']}' (Stock actual: {prod_db['stock_actual']}, Solicitado: {cantidad})"})
+            else:
+                productos_procesar.append({
+                    'codigo': codigo,
+                    'cantidad': cantidad,
+                    'id_producto': prod_db['id_producto'],
+                    'nombre': prod_db['nombre'],
+                    'stock_actual': prod_db['stock_actual'],
+                    'precio_venta': prod_db['precio_venta']
+                })
+                
+        # 2. Si hay errores, cancelar la transacción y devolver Error 400
+        if errores:
+            conexion.rollback()
+            
+            # Opcional: Dejar registro en ventas_pendientes_stock como fallido
+            cursor_log = conexion.cursor()
+            for codigo, cantidad in cantidades_solicitadas.items():
+                cursor_log.execute("""
+                    INSERT INTO ventas_pendientes_stock 
+                    (origen, codigo_producto, cantidad, referencia_externa, estado, mensaje_error, fecha_procesado)
+                    VALUES (%s, %s, %s, %s, 'error', 'Venta rechazada en bloque (error de validación)', NOW())
+                """, (origen, codigo, cantidad, ref_externa))
+            conexion.commit()
+            
+            return jsonify({
+                "mensaje": "La venta fue rechazada por completo.",
+                "referencia": ref_externa,
+                "detalles": errores
+            }), 400
+
+        # 3. Si todo es correcto, crear la cabecera de la venta en la base de datos principal
         cursor = conexion.cursor()
         
-        # 1. Registrar en la tabla intermedia (contrato de entrada)
-        for item in productos:
-            codigo = item.get('codigo')
-            cantidad = item.get('cantidad', 1)
+        # Calcular totales
+        subtotal = sum(p['cantidad'] * float(p['precio_venta']) for p in productos_procesar)
+        iva = subtotal * 0.21
+        total = subtotal + iva
+        
+        # Guardar en la tabla de ventas principal
+        cursor.execute("""
+            INSERT INTO ventas (numero_factura, cliente_nombre, subtotal, iva, total, usuario, id_estado, fecha_venta)
+            VALUES (%s, %s, %s, %s, %s, %s, 2, NOW())
+        """, (ref_externa, cliente_nombre, subtotal, iva, total, "api_system"))
+        
+        id_venta_db = cursor.lastrowid
+        
+        detalles_exito = []
+        
+        for p in productos_procesar:
+            # Registrar detalle en la tabla detalles_venta
+            subtotal_item = p['cantidad'] * float(p['precio_venta'])
+            cursor.execute("""
+                INSERT INTO detalles_venta (id_venta, id_producto, cantidad, precio_unitario, subtotal)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (id_venta_db, p['id_producto'], p['cantidad'], p['precio_venta'], subtotal_item))
             
-            if not codigo or cantidad <= 0:
-                continue
-                
+            # Registrar en tabla intermedia como procesada
             cursor.execute("""
                 INSERT INTO ventas_pendientes_stock 
-                (origen, codigo_producto, cantidad, referencia_externa, estado)
-                VALUES (%s, %s, %s, %s, 'pendiente')
-            """, (origen, codigo, cantidad, ref_externa))
-            eventos_generados.append(cursor.lastrowid)
+                (origen, codigo_producto, cantidad, referencia_externa, estado, fecha_procesado)
+                VALUES (%s, %s, %s, %s, 'procesada', NOW())
+            """, (origen, p['codigo'], p['cantidad'], ref_externa))
+            id_evento = cursor.lastrowid
+            
+            # Descontar stock
+            stock_despues = p['stock_actual'] - p['cantidad']
+            cursor.execute("UPDATE productos SET stock_actual = %s WHERE id_producto = %s", (stock_despues, p['id_producto']))
+            
+            # Registrar movimiento de stock (cantidad en NEGATIVO porque es SALIDA)
+            cursor.execute("""
+                INSERT INTO movimientos_stock 
+                    (id_producto, id_tipo_movimiento, cantidad, stock_antes, stock_despues, 
+                     referencia_tipo, referencia_id, observacion, usuario, fecha)
+                VALUES (%s, 1, %s, %s, %s, 'api_integracion', %s, %s, %s, NOW())
+            """, (p['id_producto'], -p['cantidad'], p['stock_actual'], stock_despues, 
+                  id_evento, f"Venta externa integrada (Ref: {ref_externa})", "api_system"))
+                  
+            detalles_exito.append({
+                "codigo": p['codigo'],
+                "nombre": p['nombre'],
+                "cantidad_descontada": p['cantidad'],
+                "stock_restante": stock_despues,
+                "status": "success",
+                "id_evento": id_evento
+            })
             
         conexion.commit()
         
-        # 2. Iniciar el proceso de stock de inmediato
-        resultados = procesar_ventas_pendientes()
-        
         return jsonify({
-            "mensaje": "Venta recibida y procesada en el flujo de integración.",
+            "mensaje": "Venta recibida y procesada exitosamente.",
             "referencia": ref_externa,
-            "eventos_procesados": len(eventos_generados),
-            "detalles": resultados
+            "eventos_procesados": len(productos_procesar),
+            "detalles": detalles_exito
         }), 200
         
     except Exception as e:

@@ -15,7 +15,7 @@ if sys.stderr.encoding != 'UTF-8':
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 print("=" * 60)
-print(" SISTEMA DE CONTROL DE STOCK v2.0.0")
+print(" SISTEMA DE CONTROL DE STOCK v3.0.0")
 print("=" * 60)
 print("Iniciando aplicacion...")
 print("")

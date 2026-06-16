@@ -296,6 +296,7 @@ class VentasWindow:
         payload = {
             "origen": "SIMULACION_LOCAL",
             "referencia_externa": ref_factura,
+            "cliente": self.entry_cliente.get().strip() or "CONSUMIDOR FINAL",
             "productos": []
         }
         
@@ -313,23 +314,6 @@ class VentasWindow:
             respuesta = requests.post('http://localhost:5000/api/ventas', json=payload)
             
             if respuesta.status_code == 200:
-                # Opcional: También registramos localmente en la vieja tabla de ventas para
-                # no romper la pantalla de 'Reportes' que pueda leer de ahí, pero
-                # el stock ya fue actualizado por la API
-                from models import Venta
-                from controllers import VentaController
-                
-                venta = Venta(
-                    numero_factura=ref_factura,
-                    cliente_nombre=self.entry_cliente.get().strip() or "CONSUMIDOR FINAL",
-                    usuario=self.usuario.get('nombre_usuario', 'admin') if isinstance(self.usuario, dict) else str(self.usuario)
-                )
-                for item in self.carrito:
-                    venta.agregar_detalle(item['id_producto'], item['nombre'], item['cantidad'], item['precio'])
-                
-                # Inserción en la DB local SOLO para reportes históricos de caja
-                VentaController.registrar_venta_sin_stock(venta)
-                
                 # NOTIFICAR EVENTOS
                 Eventos.notificar(EVENTO_VENTA_REGISTRADA, {
                     'factura': ref_factura,
