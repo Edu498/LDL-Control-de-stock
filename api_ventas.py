@@ -59,7 +59,7 @@ def procesar_ventas_pendientes():
                     "id_evento": id_evento, 
                     "codigo": codigo,
                     "status": "error", 
-                    "mensaje": f"Stock insuficiente (Actual: {stock_antes}, Solicitado: {cantidad})"
+                    "mensaje": f"Stock insuficiente para procesar la cantidad solicitada ({cantidad})"
                 })
                 continue
                 
@@ -180,7 +180,7 @@ def registrar_venta_externa():
             if not prod_db:
                 errores.append({"codigo": codigo, "mensaje": f"Producto '{codigo}' no encontrado."})
             elif prod_db['stock_actual'] < cantidad:
-                errores.append({"codigo": codigo, "mensaje": f"Stock insuficiente para '{prod_db['nombre']}' (Stock actual: {prod_db['stock_actual']}, Solicitado: {cantidad})"})
+                errores.append({"codigo": codigo, "mensaje": f"Stock insuficiente para '{prod_db['nombre']}' (Cantidad solicitada: {cantidad})"})
             else:
                 productos_procesar.append({
                     'codigo': codigo,
@@ -280,6 +280,49 @@ def registrar_venta_externa():
         if conexion:
             conexion.rollback()
         return jsonify({"error": f"Error interno: {str(e)}"}), 500
+    finally:
+        close_connection(conexion, cursor)
+
+@app.route('/api/productos', methods=['GET'])
+def obtener_productos():
+    """
+    Endpoint para consultar los productos activos y su stock.
+    Permite a sistemas externos (como la vista de ventas) listar el catálogo.
+    """
+    conexion = None
+    cursor = None
+    try:
+        conexion = get_connection()
+        cursor = conexion.cursor(dictionary=True)
+        query = """
+            SELECT p.*, c.nombre as categoria_nombre, pr.nombre as proveedor_nombre
+            FROM productos p
+            LEFT JOIN categorias c ON p.id_categoria = c.id_categoria
+            LEFT JOIN proveedores pr ON p.id_proveedor = pr.id_proveedor
+            WHERE p.activo = TRUE
+            ORDER BY p.nombre
+        """
+        cursor.execute(query)
+        productos = cursor.fetchall()
+        
+        # Convertir Decimals a float para que sea serializable a JSON y ocultar stock
+        for p in productos:
+            if 'stock_actual' in p:
+                del p['stock_actual']
+            if 'stock_minimo' in p:
+                del p['stock_minimo']
+            if 'stock_maximo' in p:
+                del p['stock_maximo']
+            
+            if p.get('precio_compra') is not None:
+                p['precio_compra'] = float(p['precio_compra'])
+            if p.get('precio_venta') is not None:
+                p['precio_venta'] = float(p['precio_venta'])
+            
+        return jsonify(productos), 200
+    except Exception as e:
+        print(f"Error obteniendo productos: {e}")
+        return jsonify({"error": "Error interno al obtener productos"}), 500
     finally:
         close_connection(conexion, cursor)
 

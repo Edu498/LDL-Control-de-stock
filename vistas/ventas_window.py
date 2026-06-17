@@ -2,7 +2,7 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 from datetime import datetime
-from controllers import StockController, VentaController
+from models import Producto
 from utils import Alertas, formatear_precio, generar_numero_factura
 from utils.eventos import Eventos, EVENTO_VENTA_REGISTRADA, EVENTO_STOCK_ACTUALIZADO
 
@@ -30,8 +30,25 @@ class VentasWindow:
         self.crear_widgets()
     
     def cargar_datos(self):
-        self.productos = StockController.get_all_productos()
-        self.productos_dict = {p.codigo: p for p in self.productos}
+        self.productos = []
+        self.productos_dict = {}
+        try:
+            import requests
+            respuesta = requests.get('http://localhost:5000/api/productos', timeout=5)
+            if respuesta.status_code == 200:
+                productos_json = respuesta.json()
+                for p_data in productos_json:
+                    p = Producto.from_dict(p_data)
+                    self.productos.append(p)
+                    self.productos_dict[p.codigo] = p
+            else:
+                Alertas.mostrar_mensaje_error(f"Error de API al cargar productos: {respuesta.status_code}")
+        except Exception as e:
+            Alertas.mostrar_mensaje_error(
+                "❌ Error de Conexión:\n\n"
+                "Para probar la simulación, asegúrese de que la API de integración "
+                "(api_ventas.py) esté corriendo en background (puerto 5000)."
+            )
     
     def crear_widgets(self):
         tk.Label(self.window, text="📝 REGISTRO DE SALIDAS (SIMULACIÓN/CONTINGENCIA)", 
@@ -70,7 +87,7 @@ class VentasWindow:
         scrollbar = tk.Scrollbar(frame_tabla)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         
-        columnas = ('Código', 'Producto', 'Stock', 'Precio')
+        columnas = ('Código', 'Producto', 'Precio')
         self.tabla_productos = ttk.Treeview(frame_tabla, columns=columnas, show='headings',
                                              yscrollcommand=scrollbar.set, height=15)
         
@@ -173,10 +190,9 @@ class VentasWindow:
             self.tabla_productos.delete(item)
         
         for p in self.productos:
-            if p.stock_actual > 0:
-                self.tabla_productos.insert('', tk.END, values=(
-                    p.codigo, p.nombre, p.stock_actual, f"${p.precio_venta:,.2f}"
-                ))
+            self.tabla_productos.insert('', tk.END, values=(
+                p.codigo, p.nombre, f"${p.precio_venta:,.2f}"
+            ))
     
     def buscar_productos(self, event=None):
         texto = self.entry_busqueda.get().lower()
@@ -185,9 +201,9 @@ class VentasWindow:
             self.tabla_productos.delete(item)
         
         for p in self.productos:
-            if p.stock_actual > 0 and (texto in p.codigo.lower() or texto in p.nombre.lower()):
+            if texto in p.codigo.lower() or texto in p.nombre.lower():
                 self.tabla_productos.insert('', tk.END, values=(
-                    p.codigo, p.nombre, p.stock_actual, f"${p.precio_venta:,.2f}"
+                    p.codigo, p.nombre, f"${p.precio_venta:,.2f}"
                 ))
     
     def agregar_al_carrito(self):
@@ -212,16 +228,9 @@ class VentasWindow:
             Alertas.mostrar_mensaje_advertencia("La cantidad debe ser mayor a 0")
             return
         
-        if cantidad > producto.stock_actual:
-            Alertas.mostrar_mensaje_advertencia(f"Stock insuficiente. Solo hay {producto.stock_actual} unidades")
-            return
-        
         for i, item_carrito in enumerate(self.carrito):
             if item_carrito['id_producto'] == producto.id_producto:
                 nueva_cantidad = item_carrito['cantidad'] + cantidad
-                if nueva_cantidad > producto.stock_actual:
-                    Alertas.mostrar_mensaje_advertencia(f"Stock insuficiente. Solo puede agregar {producto.stock_actual - item_carrito['cantidad']} más")
-                    return
                 self.carrito[i]['cantidad'] = nueva_cantidad
                 self.carrito[i]['subtotal'] = nueva_cantidad * producto.precio_venta
                 break
@@ -342,7 +351,16 @@ class VentasWindow:
                         self.parent._refrescar_datos()
                     self.window.destroy()
             else:
-                Alertas.mostrar_mensaje_error(f"❌ Error de la API:\n{respuesta.json().get('error', respuesta.text)}")
+                try:
+                    error_json = respuesta.json()
+                    if 'detalles' in error_json:
+                        mensajes_error = "\n".join([f"• {d.get('mensaje', 'Error en producto')}" for d in error_json['detalles']])
+                        mensaje_final = f"{error_json.get('mensaje', 'La venta fue rechazada.')}\n\nDetalles del rechazo:\n{mensajes_error}"
+                    else:
+                        mensaje_final = error_json.get('error', respuesta.text)
+                    Alertas.mostrar_mensaje_error(f"❌ Venta Rechazada\n\n{mensaje_final}")
+                except Exception:
+                    Alertas.mostrar_mensaje_error(f"❌ Error de la API:\n{respuesta.text}")
                 
         except requests.exceptions.ConnectionError:
             Alertas.mostrar_mensaje_error(

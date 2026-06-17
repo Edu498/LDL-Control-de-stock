@@ -35,6 +35,7 @@ class ProductosWindow:
         self.productos = StockController.get_all_productos()
         self.categorias = StockController.get_categorias()
         self.proveedores = StockController.get_proveedores()
+        self.categorias_dict = {c.id_categoria: c.nombre for c in self.categorias}
     
     def refrescar_tabla(self, datos=None):
         self.cargar_datos()
@@ -105,9 +106,10 @@ class ProductosWindow:
         for p in self.productos:
             estado = p.estado_stock
             icono = p.icono_estado
+            categoria_nombre = getattr(self, 'categorias_dict', {}).get(p.id_categoria, '-')
             
             self.tabla.insert('', tk.END, values=(
-                p.codigo, p.nombre, p.id_categoria or '-',
+                p.codigo, p.nombre, categoria_nombre,
                 p.stock_actual, p.stock_minimo,
                 f"${p.precio_venta:,.2f}", f"{icono} {estado}"
             ), tags=(estado,))

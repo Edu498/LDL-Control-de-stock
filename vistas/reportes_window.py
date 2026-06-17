@@ -67,13 +67,16 @@ class ReporteStock:
             self.tabla.delete(item)
         
         productos = StockController.get_all_productos()
+        categorias = StockController.get_categorias()
+        categorias_dict = {c.id_categoria: c.nombre for c in categorias}
         
         for p in productos:
             estado = p.estado_stock
             icono = p.icono_estado
+            categoria_nombre = categorias_dict.get(p.id_categoria, '-')
             
             self.tabla.insert('', tk.END, values=(
-                p.codigo, p.nombre, p.id_categoria or '-',
+                p.codigo, p.nombre, categoria_nombre,
                 p.stock_actual, p.stock_minimo, f"{icono} {estado}"
             ), tags=(estado,))
         
