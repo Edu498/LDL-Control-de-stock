@@ -66,9 +66,6 @@ config    </h1>
                         <div class="docstring"><p>Configuración del Sistema de Control de Stock
 Autor: Sistema Profesional de Gestión
 Versión: 2.0.0</p>
-
-<p>Este módulo contiene todos los diccionarios de configuración necesarios para el
-correcto funcionamiento del sistema (base de datos, aplicación, IVA, stock y facturación).</p>
 </div>
 
                         <input id="mod-config-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
@@ -80,64 +77,57 @@ correcto funcionamiento del sistema (base de datos, aplicación, IVA, stock y fa
 </span><span id="L-3"><a href="#L-3"><span class="linenos"> 3</span></a><span class="sd">Configuración del Sistema de Control de Stock</span>
 </span><span id="L-4"><a href="#L-4"><span class="linenos"> 4</span></a><span class="sd">Autor: Sistema Profesional de Gestión</span>
 </span><span id="L-5"><a href="#L-5"><span class="linenos"> 5</span></a><span class="sd">Versión: 2.0.0</span>
-</span><span id="L-6"><a href="#L-6"><span class="linenos"> 6</span></a>
-</span><span id="L-7"><a href="#L-7"><span class="linenos"> 7</span></a><span class="sd">Este módulo contiene todos los diccionarios de configuración necesarios para el</span>
-</span><span id="L-8"><a href="#L-8"><span class="linenos"> 8</span></a><span class="sd">correcto funcionamiento del sistema (base de datos, aplicación, IVA, stock y facturación).</span>
-</span><span id="L-9"><a href="#L-9"><span class="linenos"> 9</span></a><span class="sd">&quot;&quot;&quot;</span>
-</span><span id="L-10"><a href="#L-10"><span class="linenos">10</span></a>
-</span><span id="L-11"><a href="#L-11"><span class="linenos">11</span></a><span class="c1"># Configuración de Base de Datos</span>
-</span><span id="L-12"><a href="#L-12"><span class="linenos">12</span></a><span class="n">DB_CONFIG</span> <span class="o">=</span> <span class="p">{</span>
-</span><span id="L-13"><a href="#L-13"><span class="linenos">13</span></a>    <span class="s1">&#39;host&#39;</span><span class="p">:</span> <span class="s1">&#39;localhost&#39;</span><span class="p">,</span>
-</span><span id="L-14"><a href="#L-14"><span class="linenos">14</span></a>    <span class="s1">&#39;user&#39;</span><span class="p">:</span> <span class="s1">&#39;root&#39;</span><span class="p">,</span>
-</span><span id="L-15"><a href="#L-15"><span class="linenos">15</span></a>    <span class="s1">&#39;password&#39;</span><span class="p">:</span> <span class="s1">&#39;Arcangeles369&#39;</span><span class="p">,</span>
-</span><span id="L-16"><a href="#L-16"><span class="linenos">16</span></a>    <span class="s1">&#39;database&#39;</span><span class="p">:</span> <span class="s1">&#39;stock&#39;</span><span class="p">,</span>
-</span><span id="L-17"><a href="#L-17"><span class="linenos">17</span></a>    <span class="s1">&#39;port&#39;</span><span class="p">:</span> <span class="mi">3306</span><span class="p">,</span>
-</span><span id="L-18"><a href="#L-18"><span class="linenos">18</span></a>    <span class="s1">&#39;charset&#39;</span><span class="p">:</span> <span class="s1">&#39;utf8mb4&#39;</span><span class="p">,</span>
-</span><span id="L-19"><a href="#L-19"><span class="linenos">19</span></a>    <span class="s1">&#39;use_pure&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
-</span><span id="L-20"><a href="#L-20"><span class="linenos">20</span></a>    <span class="s1">&#39;autocommit&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
-</span><span id="L-21"><a href="#L-21"><span class="linenos">21</span></a>    <span class="s1">&#39;pool_name&#39;</span><span class="p">:</span> <span class="s1">&#39;mypool&#39;</span><span class="p">,</span>
-</span><span id="L-22"><a href="#L-22"><span class="linenos">22</span></a>    <span class="s1">&#39;pool_size&#39;</span><span class="p">:</span> <span class="mi">5</span>
-</span><span id="L-23"><a href="#L-23"><span class="linenos">23</span></a><span class="p">}</span>
-</span><span id="L-24"><a href="#L-24"><span class="linenos">24</span></a><span class="sd">&quot;&quot;&quot;dict: Configuración de conexión para la base de datos MySQL, incluyendo credenciales y pool de conexiones.&quot;&quot;&quot;</span>
-</span><span id="L-25"><a href="#L-25"><span class="linenos">25</span></a>
-</span><span id="L-26"><a href="#L-26"><span class="linenos">26</span></a><span class="c1"># Configuración de la Aplicación</span>
-</span><span id="L-27"><a href="#L-27"><span class="linenos">27</span></a><span class="n">APP_CONFIG</span> <span class="o">=</span> <span class="p">{</span>
-</span><span id="L-28"><a href="#L-28"><span class="linenos">28</span></a>    <span class="s1">&#39;nombre&#39;</span><span class="p">:</span> <span class="s1">&#39;Sistema de Control de Stock&#39;</span><span class="p">,</span>
-</span><span id="L-29"><a href="#L-29"><span class="linenos">29</span></a>    <span class="s1">&#39;version&#39;</span><span class="p">:</span> <span class="s1">&#39;2.0.0&#39;</span><span class="p">,</span>
-</span><span id="L-30"><a href="#L-30"><span class="linenos">30</span></a>    <span class="s1">&#39;empresa&#39;</span><span class="p">:</span> <span class="s1">&#39;Sistema Profesional de Gestión&#39;</span><span class="p">,</span>
-</span><span id="L-31"><a href="#L-31"><span class="linenos">31</span></a>    <span class="s1">&#39;desarrollador&#39;</span><span class="p">:</span> <span class="s1">&#39;Engineering Team&#39;</span><span class="p">,</span>
-</span><span id="L-32"><a href="#L-32"><span class="linenos">32</span></a>    <span class="s1">&#39;year&#39;</span><span class="p">:</span> <span class="mi">2024</span>
-</span><span id="L-33"><a href="#L-33"><span class="linenos">33</span></a><span class="p">}</span>
-</span><span id="L-34"><a href="#L-34"><span class="linenos">34</span></a><span class="sd">&quot;&quot;&quot;dict: Datos informativos y metadatos generales de la aplicación.&quot;&quot;&quot;</span>
-</span><span id="L-35"><a href="#L-35"><span class="linenos">35</span></a>
-</span><span id="L-36"><a href="#L-36"><span class="linenos">36</span></a><span class="c1"># Configuración de IVA</span>
-</span><span id="L-37"><a href="#L-37"><span class="linenos">37</span></a><span class="n">IVA_CONFIG</span> <span class="o">=</span> <span class="p">{</span>
-</span><span id="L-38"><a href="#L-38"><span class="linenos">38</span></a>    <span class="s1">&#39;tasa_default&#39;</span><span class="p">:</span> <span class="mf">21.0</span><span class="p">,</span>
-</span><span id="L-39"><a href="#L-39"><span class="linenos">39</span></a>    <span class="s1">&#39;tasas&#39;</span><span class="p">:</span> <span class="p">{</span>
-</span><span id="L-40"><a href="#L-40"><span class="linenos">40</span></a>        <span class="mi">1</span><span class="p">:</span> <span class="mf">21.0</span><span class="p">,</span>
-</span><span id="L-41"><a href="#L-41"><span class="linenos">41</span></a>        <span class="mi">2</span><span class="p">:</span> <span class="mf">10.5</span><span class="p">,</span>
-</span><span id="L-42"><a href="#L-42"><span class="linenos">42</span></a>        <span class="mi">3</span><span class="p">:</span> <span class="mf">0.0</span>
-</span><span id="L-43"><a href="#L-43"><span class="linenos">43</span></a>    <span class="p">}</span>
-</span><span id="L-44"><a href="#L-44"><span class="linenos">44</span></a><span class="p">}</span>
-</span><span id="L-45"><a href="#L-45"><span class="linenos">45</span></a><span class="sd">&quot;&quot;&quot;dict: Tasas de IVA aplicables a los productos y tasa por defecto.&quot;&quot;&quot;</span>
-</span><span id="L-46"><a href="#L-46"><span class="linenos">46</span></a>
-</span><span id="L-47"><a href="#L-47"><span class="linenos">47</span></a><span class="c1"># Configuración de Stock</span>
-</span><span id="L-48"><a href="#L-48"><span class="linenos">48</span></a><span class="n">STOCK_CONFIG</span> <span class="o">=</span> <span class="p">{</span>
-</span><span id="L-49"><a href="#L-49"><span class="linenos">49</span></a>    <span class="s1">&#39;stock_minimo_default&#39;</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span>
-</span><span id="L-50"><a href="#L-50"><span class="linenos">50</span></a>    <span class="s1">&#39;alerta_stock_bajo&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
-</span><span id="L-51"><a href="#L-51"><span class="linenos">51</span></a>    <span class="s1">&#39;alerta_sin_stock&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
-</span><span id="L-52"><a href="#L-52"><span class="linenos">52</span></a>    <span class="s1">&#39;dias_para_reposicion&#39;</span><span class="p">:</span> <span class="mi">7</span>
-</span><span id="L-53"><a href="#L-53"><span class="linenos">53</span></a><span class="p">}</span>
-</span><span id="L-54"><a href="#L-54"><span class="linenos">54</span></a><span class="sd">&quot;&quot;&quot;dict: Parámetros del gestor de stock, incluyendo mínimos y alertas.&quot;&quot;&quot;</span>
-</span><span id="L-55"><a href="#L-55"><span class="linenos">55</span></a>
-</span><span id="L-56"><a href="#L-56"><span class="linenos">56</span></a><span class="c1"># Configuración de Facturación</span>
-</span><span id="L-57"><a href="#L-57"><span class="linenos">57</span></a><span class="n">FACTURACION_CONFIG</span> <span class="o">=</span> <span class="p">{</span>
-</span><span id="L-58"><a href="#L-58"><span class="linenos">58</span></a>    <span class="s1">&#39;prefijo_factura&#39;</span><span class="p">:</span> <span class="s1">&#39;F&#39;</span><span class="p">,</span>
-</span><span id="L-59"><a href="#L-59"><span class="linenos">59</span></a>    <span class="s1">&#39;longitud_numero&#39;</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span>
-</span><span id="L-60"><a href="#L-60"><span class="linenos">60</span></a>    <span class="s1">&#39;incluir_iva&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
-</span><span id="L-61"><a href="#L-61"><span class="linenos">61</span></a>    <span class="s1">&#39;decimales&#39;</span><span class="p">:</span> <span class="mi">2</span>
-</span><span id="L-62"><a href="#L-62"><span class="linenos">62</span></a><span class="p">}</span>
-</span><span id="L-63"><a href="#L-63"><span class="linenos">63</span></a><span class="sd">&quot;&quot;&quot;dict: Opciones de formato de factura y precisión decimal para cálculos financieros.&quot;&quot;&quot;</span>
+</span><span id="L-6"><a href="#L-6"><span class="linenos"> 6</span></a><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="L-7"><a href="#L-7"><span class="linenos"> 7</span></a>
+</span><span id="L-8"><a href="#L-8"><span class="linenos"> 8</span></a><span class="c1"># Configuración de Base de Datos</span>
+</span><span id="L-9"><a href="#L-9"><span class="linenos"> 9</span></a><span class="n">DB_CONFIG</span> <span class="o">=</span> <span class="p">{</span>
+</span><span id="L-10"><a href="#L-10"><span class="linenos">10</span></a>    <span class="s1">&#39;host&#39;</span><span class="p">:</span> <span class="s1">&#39;localhost&#39;</span><span class="p">,</span>
+</span><span id="L-11"><a href="#L-11"><span class="linenos">11</span></a>    <span class="s1">&#39;user&#39;</span><span class="p">:</span> <span class="s1">&#39;root&#39;</span><span class="p">,</span>
+</span><span id="L-12"><a href="#L-12"><span class="linenos">12</span></a>    <span class="s1">&#39;password&#39;</span><span class="p">:</span> <span class="s1">&#39;root&#39;</span><span class="p">,</span>
+</span><span id="L-13"><a href="#L-13"><span class="linenos">13</span></a>    <span class="s1">&#39;database&#39;</span><span class="p">:</span> <span class="s1">&#39;control_stock&#39;</span><span class="p">,</span>
+</span><span id="L-14"><a href="#L-14"><span class="linenos">14</span></a>    <span class="s1">&#39;port&#39;</span><span class="p">:</span> <span class="mi">3306</span><span class="p">,</span>
+</span><span id="L-15"><a href="#L-15"><span class="linenos">15</span></a>    <span class="s1">&#39;charset&#39;</span><span class="p">:</span> <span class="s1">&#39;utf8mb4&#39;</span><span class="p">,</span>
+</span><span id="L-16"><a href="#L-16"><span class="linenos">16</span></a>    <span class="s1">&#39;use_pure&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+</span><span id="L-17"><a href="#L-17"><span class="linenos">17</span></a>    <span class="c1">#&#39;collation&#39;: &#39;utf8mb4_0900_ai_ci&#39;,</span>
+</span><span id="L-18"><a href="#L-18"><span class="linenos">18</span></a>    <span class="s1">&#39;autocommit&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+</span><span id="L-19"><a href="#L-19"><span class="linenos">19</span></a>    <span class="s1">&#39;pool_name&#39;</span><span class="p">:</span> <span class="s1">&#39;mypool&#39;</span><span class="p">,</span>
+</span><span id="L-20"><a href="#L-20"><span class="linenos">20</span></a>    <span class="s1">&#39;pool_size&#39;</span><span class="p">:</span> <span class="mi">5</span>
+</span><span id="L-21"><a href="#L-21"><span class="linenos">21</span></a><span class="p">}</span>
+</span><span id="L-22"><a href="#L-22"><span class="linenos">22</span></a>
+</span><span id="L-23"><a href="#L-23"><span class="linenos">23</span></a><span class="c1"># Configuración de la Aplicación</span>
+</span><span id="L-24"><a href="#L-24"><span class="linenos">24</span></a><span class="n">APP_CONFIG</span> <span class="o">=</span> <span class="p">{</span>
+</span><span id="L-25"><a href="#L-25"><span class="linenos">25</span></a>    <span class="s1">&#39;nombre&#39;</span><span class="p">:</span> <span class="s1">&#39;Sistema de Control de Stock&#39;</span><span class="p">,</span>
+</span><span id="L-26"><a href="#L-26"><span class="linenos">26</span></a>    <span class="s1">&#39;version&#39;</span><span class="p">:</span> <span class="s1">&#39;2.0.0&#39;</span><span class="p">,</span>
+</span><span id="L-27"><a href="#L-27"><span class="linenos">27</span></a>    <span class="s1">&#39;empresa&#39;</span><span class="p">:</span> <span class="s1">&#39;Sistema Profesional de Gestión&#39;</span><span class="p">,</span>
+</span><span id="L-28"><a href="#L-28"><span class="linenos">28</span></a>    <span class="s1">&#39;desarrollador&#39;</span><span class="p">:</span> <span class="s1">&#39;Engineering Team&#39;</span><span class="p">,</span>
+</span><span id="L-29"><a href="#L-29"><span class="linenos">29</span></a>    <span class="s1">&#39;year&#39;</span><span class="p">:</span> <span class="mi">2024</span>
+</span><span id="L-30"><a href="#L-30"><span class="linenos">30</span></a><span class="p">}</span>
+</span><span id="L-31"><a href="#L-31"><span class="linenos">31</span></a>
+</span><span id="L-32"><a href="#L-32"><span class="linenos">32</span></a><span class="c1"># Configuración de IVA</span>
+</span><span id="L-33"><a href="#L-33"><span class="linenos">33</span></a><span class="n">IVA_CONFIG</span> <span class="o">=</span> <span class="p">{</span>
+</span><span id="L-34"><a href="#L-34"><span class="linenos">34</span></a>    <span class="s1">&#39;tasa_default&#39;</span><span class="p">:</span> <span class="mf">21.0</span><span class="p">,</span>
+</span><span id="L-35"><a href="#L-35"><span class="linenos">35</span></a>    <span class="s1">&#39;tasas&#39;</span><span class="p">:</span> <span class="p">{</span>
+</span><span id="L-36"><a href="#L-36"><span class="linenos">36</span></a>        <span class="mi">1</span><span class="p">:</span> <span class="mf">21.0</span><span class="p">,</span>
+</span><span id="L-37"><a href="#L-37"><span class="linenos">37</span></a>        <span class="mi">2</span><span class="p">:</span> <span class="mf">10.5</span><span class="p">,</span>
+</span><span id="L-38"><a href="#L-38"><span class="linenos">38</span></a>        <span class="mi">3</span><span class="p">:</span> <span class="mf">0.0</span>
+</span><span id="L-39"><a href="#L-39"><span class="linenos">39</span></a>    <span class="p">}</span>
+</span><span id="L-40"><a href="#L-40"><span class="linenos">40</span></a><span class="p">}</span>
+</span><span id="L-41"><a href="#L-41"><span class="linenos">41</span></a>
+</span><span id="L-42"><a href="#L-42"><span class="linenos">42</span></a><span class="c1"># Configuración de Stock</span>
+</span><span id="L-43"><a href="#L-43"><span class="linenos">43</span></a><span class="n">STOCK_CONFIG</span> <span class="o">=</span> <span class="p">{</span>
+</span><span id="L-44"><a href="#L-44"><span class="linenos">44</span></a>    <span class="s1">&#39;stock_minimo_default&#39;</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span>
+</span><span id="L-45"><a href="#L-45"><span class="linenos">45</span></a>    <span class="s1">&#39;alerta_stock_bajo&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+</span><span id="L-46"><a href="#L-46"><span class="linenos">46</span></a>    <span class="s1">&#39;alerta_sin_stock&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+</span><span id="L-47"><a href="#L-47"><span class="linenos">47</span></a>    <span class="s1">&#39;dias_para_reposicion&#39;</span><span class="p">:</span> <span class="mi">7</span>
+</span><span id="L-48"><a href="#L-48"><span class="linenos">48</span></a><span class="p">}</span>
+</span><span id="L-49"><a href="#L-49"><span class="linenos">49</span></a>
+</span><span id="L-50"><a href="#L-50"><span class="linenos">50</span></a><span class="c1"># Configuración de Facturación</span>
+</span><span id="L-51"><a href="#L-51"><span class="linenos">51</span></a><span class="n">FACTURACION_CONFIG</span> <span class="o">=</span> <span class="p">{</span>
+</span><span id="L-52"><a href="#L-52"><span class="linenos">52</span></a>    <span class="s1">&#39;prefijo_factura&#39;</span><span class="p">:</span> <span class="s1">&#39;F&#39;</span><span class="p">,</span>
+</span><span id="L-53"><a href="#L-53"><span class="linenos">53</span></a>    <span class="s1">&#39;longitud_numero&#39;</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span>
+</span><span id="L-54"><a href="#L-54"><span class="linenos">54</span></a>    <span class="s1">&#39;incluir_iva&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+</span><span id="L-55"><a href="#L-55"><span class="linenos">55</span></a>    <span class="s1">&#39;decimales&#39;</span><span class="p">:</span> <span class="mi">2</span>
+</span><span id="L-56"><a href="#L-56"><span class="linenos">56</span></a><span class="p">}</span>
 </span></pre></div>
 
 
@@ -146,15 +136,13 @@ correcto funcionamiento del sistema (base de datos, aplicación, IVA, stock y fa
                     <div class="attr variable">
             <span class="name">DB_CONFIG</span>        =
 <input id="DB_CONFIG-view-value" class="view-value-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
-            <label class="view-value-button pdoc-button" for="DB_CONFIG-view-value"></label><span class="default_value">{&#39;host&#39;: &#39;localhost&#39;, &#39;user&#39;: &#39;root&#39;, &#39;password&#39;: &#39;Arcangeles369&#39;, &#39;database&#39;: &#39;stock&#39;, &#39;port&#39;: 3306, &#39;charset&#39;: &#39;utf8mb4&#39;, &#39;use_pure&#39;: True, &#39;autocommit&#39;: False, &#39;pool_name&#39;: &#39;mypool&#39;, &#39;pool_size&#39;: 5}</span>
+            <label class="view-value-button pdoc-button" for="DB_CONFIG-view-value"></label><span class="default_value">{&#39;host&#39;: &#39;localhost&#39;, &#39;user&#39;: &#39;root&#39;, &#39;password&#39;: &#39;root&#39;, &#39;database&#39;: &#39;control_stock&#39;, &#39;port&#39;: 3306, &#39;charset&#39;: &#39;utf8mb4&#39;, &#39;use_pure&#39;: True, &#39;autocommit&#39;: False, &#39;pool_name&#39;: &#39;mypool&#39;, &#39;pool_size&#39;: 5}</span>
 
         
     </div>
     <a class="headerlink" href="#DB_CONFIG"></a>
     
-            <div class="docstring"><p>dict: Configuración de conexión para la base de datos MySQL, incluyendo credenciales y pool de conexiones.</p>
-</div>
-
+    
 
                 </section>
                 <section id="APP_CONFIG">
@@ -167,9 +155,7 @@ correcto funcionamiento del sistema (base de datos, aplicación, IVA, stock y fa
     </div>
     <a class="headerlink" href="#APP_CONFIG"></a>
     
-            <div class="docstring"><p>dict: Datos informativos y metadatos generales de la aplicación.</p>
-</div>
-
+    
 
                 </section>
                 <section id="IVA_CONFIG">
@@ -181,9 +167,7 @@ correcto funcionamiento del sistema (base de datos, aplicación, IVA, stock y fa
     </div>
     <a class="headerlink" href="#IVA_CONFIG"></a>
     
-            <div class="docstring"><p>dict: Tasas de IVA aplicables a los productos y tasa por defecto.</p>
-</div>
-
+    
 
                 </section>
                 <section id="STOCK_CONFIG">
@@ -196,9 +180,7 @@ correcto funcionamiento del sistema (base de datos, aplicación, IVA, stock y fa
     </div>
     <a class="headerlink" href="#STOCK_CONFIG"></a>
     
-            <div class="docstring"><p>dict: Parámetros del gestor de stock, incluyendo mínimos y alertas.</p>
-</div>
-
+    
 
                 </section>
                 <section id="FACTURACION_CONFIG">
@@ -210,9 +192,7 @@ correcto funcionamiento del sistema (base de datos, aplicación, IVA, stock y fa
     </div>
     <a class="headerlink" href="#FACTURACION_CONFIG"></a>
     
-            <div class="docstring"><p>dict: Opciones de formato de factura y precisión decimal para cálculos financieros.</p>
-</div>
-
+    
 
                 </section>
     </main>

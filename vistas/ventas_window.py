@@ -336,20 +336,19 @@ class VentasWindow:
                     f"El stock ha sido actualizado mediante la tabla de integración."
                 )
                 
-                self.limpiar_carrito()
+                self.carrito = []
+                self.actualizar_carrito()
                 self.cargar_datos()
                 self.actualizar_tabla_productos()
                 self.entry_cliente.delete(0, tk.END)
                 self.entry_cliente.insert(0, "CONSUMIDOR FINAL")
                 
-                # ACTUALIZAR DASHBOARD
+                # ACTUALIZAR DATOS EN LA APP PRINCIPAL SIN SALIR DEL MODULO
                 if self.main_app:
                     self.main_app._refrescar_datos()
-                    self.main_app._mostrar_dashboard()
                 else:
                     if hasattr(self.parent, '_refrescar_datos'):
                         self.parent._refrescar_datos()
-                    self.window.destroy()
             else:
                 try:
                     error_json = respuesta.json()

@@ -131,6 +131,19 @@ CREATE TABLE ventas (
     INDEX idx_numero (numero_factura)
 );
 
+-- Tabla ventas_pendientes_stock (Contrato de Integración)
+CREATE TABLE ventas_pendientes_stock (
+    id_evento INT AUTO_INCREMENT PRIMARY KEY,
+    origen VARCHAR(50) NOT NULL,
+    codigo_producto VARCHAR(50) NOT NULL,
+    cantidad INT NOT NULL,
+    fecha_evento TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    estado VARCHAR(20) DEFAULT 'pendiente',
+    mensaje_error TEXT,
+    fecha_procesado TIMESTAMP NULL,
+    referencia_externa VARCHAR(100)
+);
+
 -- Detalle de ventas
 CREATE TABLE detalles_venta (
     id_detalle INT AUTO_INCREMENT PRIMARY KEY,
